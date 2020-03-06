@@ -1,0 +1,51 @@
+// The generated lexer module will start with this code
+{
+module ParserLexer
+open FSharp.Text.Lexing
+open System
+// open the module that defines the tokens
+open ParserParser
+}
+
+// We define macros for some regular expressions we will use later
+let digit       = ['0'-'9']
+let num         = digit+ ( '.' digit+)?  ('E' ('+'|'-')? digit+ )?
+let whitespace  = [' ' '\t']
+let newline     = "\n\r" | '\n' | '\r'
+let letter      = ['a'-'z' 'A'-'Z']
+let var         = letter (letter | digit)*
+
+// We define now the rules for recognising and building tokens
+// for each of the tokens of our language we need a rule
+// NOTE: rules are applied in order top-down. 
+//       This is important when tokens overlap (not in this example)
+rule tokenize = parse
+// deal with tokens that need to be ignored (skip them)
+| whitespace    { tokenize lexbuf }
+| newline       { lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf; }
+// deal with tokens that need to be built
+| num           { NUM(Double.Parse(LexBuffer<_>.LexemeString lexbuf)) }
+| '^'           { POW }
+| '*'           { TIMES }
+| '/'           { DIV }
+| '+'           { PLUS }
+| '-'           { MINUS }
+| '('           { LPAR }
+| ')'           { RPAR }
+| '['           { LBRA }
+| ']'           { RBRA }
+| "true"        { TRUE }
+| "false"       { FALSE }
+| '!'           { NOT }
+| '&'           { AND }
+| '|'           { OR }
+| "&&"          { ANDSC }
+| "||"          { ORSC }
+| '='           { EQUAL }
+| "!="          { NOTEQUAL }
+| '>'           { GT }
+| ">="          { GET }
+| '<'           { LT }
+| "<="          { LET }
+| var           { VAR(LexBuffer<_>.LexemeString lexbuf) }
+| eof           { EOF }
