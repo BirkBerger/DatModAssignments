@@ -73,6 +73,9 @@ boolean:
 	| expression LT expression		    { LTLogic($1,$3) }
 	| expression LET expression		    { LETLogic($1,$3) }
 
+error:
+	| expression					    { InvalidExpr($1) }
+
 
 // Again, the code annotation specifies the result of parsing
 // For example { TimesExpr($1,$3) } specifies that parsing with the production

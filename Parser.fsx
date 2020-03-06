@@ -1,7 +1,9 @@
 // This script implements our interactive calculator
 
 // We need to import a couple of modules, including the generated lexer and parser
-#r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+#r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll" // Thea
+// #r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll" // Vivian
+// "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll" // Amalie
 open FSharp.Text.Lexing
 open System
 #load "ParserTypesAST.fs"
@@ -17,32 +19,29 @@ let rec evalExpr e =
   match e with
     | Num(x) -> true
     | Var(x) -> true
-    | TimesExpr(x,y) -> evalExpr(x) && evalExpr (y)
-    | DivExpr(x,y) -> evalExpr(x) && evalExpr (y)
-    | PlusExpr(x,y) -> evalExpr(x) && evalExpr (y)
-    | MinusExpr(x,y) -> evalExpr(x) && evalExpr (y)
+    | TimesExpr(x,y)
+    | DivExpr(x,y)
+    | PlusExpr(x,y)
+    | MinusExpr(x,y)
     | PowExpr(x,y) -> evalExpr(x) && evalExpr (y)
-    | UPlusExpr(x) -> evalExpr(x)
-    | UMinusExpr(x) -> evalExpr(x)
+    | UPlusExpr(x)
+    | UMinusExpr(x)
     | Index(x) -> evalExpr(x)
-    | _ -> false
 and evalLogic b =
     match b with
     | True(x) -> true
-    | False(x) -> false
+    | False(x) -> true
     | NotLogic(x) -> evalLogic(x)
-    | AndSCLogic(x,y) -> evalLogic(x) && evalLogic(y)
-    | AndLogic(x,y) -> evalLogic(x) && evalLogic(y)
-    | OrLogic(x,y) -> evalLogic(x) && evalLogic(y)
+    | AndSCLogic(x,y)
+    | AndLogic(x,y)
+    | OrLogic(x,y)
     | OrSCLogic(x,y) -> evalLogic(x) && evalLogic(y)
-    | EqualLogic(x,y) -> evalExpr(x) && evalExpr(y) 
-    | NotEqualLogic(x,y) -> evalExpr(x) && evalExpr(y) 
-    | GTLogic(x,y) -> evalExpr(x) && evalExpr(y) 
-    | GETLogic(x,y) -> evalExpr(x) && evalExpr(y) 
-    | LTLogic(x,y) -> evalExpr(x) && evalExpr(y) 
-    | LETLogic(x,y) -> evalExpr(x) && evalExpr(y)  
-    | _ -> false
-
+    | EqualLogic(x,y)
+    | NotEqualLogic(x,y)
+    | GTLogic(x,y)
+    | GETLogic(x,y)
+    | LTLogic(x,y)
+    | LETLogic(x,y) -> evalExpr(x) && evalExpr(y)
 
 
  //   match b with
@@ -70,6 +69,7 @@ let parse input =
     // return the result of parsing (i.e. value of type "expr")
     res
 
+
 // We implement here the function that interacts with the user
 let rec compute n =
     if n = 0 then
@@ -81,9 +81,8 @@ let rec compute n =
         let e = parse (Console.ReadLine())
         // and print the result of evaluating it
         //printfn "Result: %b" (evalExpr(e))
-        printfn "Result: %b" (evalLogic(e))
-        compute n
-        with err -> printfn "wrong syntax"
+        printfn "Syntax correct - according to GCL grammar." 
+        with err -> printfn "Syntax invalid - according to GCL grammar."
                     compute (n-1)
 
 // Start interacting with the user

@@ -17,16 +17,19 @@ type expr =
 
   //booleans
 type logic =
-    |True of bool
-    |False of bool
-    |NotLogic of (logic)
-    |AndLogic of (logic*logic)
-    |AndSCLogic of (logic*logic)
-    |OrLogic of (logic*logic)
-    |OrSCLogic of (logic*logic)
-    |EqualLogic of (expr*expr)
-    |NotEqualLogic of (expr*expr)
-    |GTLogic of (expr*expr)
-    |GETLogic of (expr*expr)
-    |LTLogic of (expr*expr)
-    |LETLogic of (expr*expr)
+  | True of bool
+  | False of bool
+  | NotLogic of (logic)
+  | AndLogic of (logic*logic)
+  | AndSCLogic of (logic*logic)
+  | OrLogic of (logic*logic)
+  | OrSCLogic of (logic*logic)
+  | EqualLogic of (expr*expr)
+  | NotEqualLogic of (expr*expr)
+  | GTLogic of (expr*expr)
+  | GETLogic of (expr*expr)
+  | LTLogic of (expr*expr)
+  | LETLogic of (expr*expr)
+
+type invalidSyntax =
+  | InvalidExpr of (expr)
