@@ -2,6 +2,9 @@
 // to store represent arithmetic expressions
 module ParserTypesAST
 
+//Indentification
+type id = string
+
 //arithmic
 type expr =
   | Num of float
@@ -13,7 +16,8 @@ type expr =
   | UPlusExpr of (expr)
   | UMinusExpr of (expr)
   | Var of string
-  | Index of (expr)
+  | Index of (id*expr)
+
 
   //booleans
 type logic =
@@ -30,3 +34,14 @@ type logic =
     |GETLogic of (expr*expr)
     |LTLogic of (expr*expr)
     |LETLogic of (expr*expr)
+
+type cmd =
+    |IdentVar of (id*expr)
+    |IdentIndex of (id*expr*expr)
+    |Skip
+    |NextCmd of (cmd*cmd)
+    |If of (guarded)
+    |Loop of (guarded)
+and guarded =
+    |Check of (logic*cmd)
+    |NextGuarded of (guarded*guarded)

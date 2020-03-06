@@ -47,5 +47,13 @@ rule tokenize = parse
 | ">="          { GET }
 | '<'           { LT }
 | "<="          { LET }
+| ":="          { IDENT }
+| ';'           { NEXT }
+| "if"          { IF }
+| "fi"          { FI }
+| "do"          { DO }
+| "od"          { OD }
+| "skip"        { SKIP }
+| "->"          { TO }
 | var           { VAR(LexBuffer<_>.LexemeString lexbuf) }
 | eof           { EOF }

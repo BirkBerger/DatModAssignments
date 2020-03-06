@@ -2,6 +2,7 @@
 
 // We need to import a couple of modules, including the generated lexer and parser
 #r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+// #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
 open FSharp.Text.Lexing
 open System
 #load "ParserTypesAST.fs"
@@ -10,6 +11,8 @@ open ParserTypesAST
 open ParserParser
 #load "ParserLexer.fs"
 open ParserLexer
+
+
 
 // We define the evaluation function recursively, by induction on the structure
 // of arithmetic expressions (AST of type expr)
@@ -24,12 +27,11 @@ let rec evalExpr e =
     | PowExpr(x,y) -> evalExpr(x) && evalExpr (y)
     | UPlusExpr(x) -> evalExpr(x)
     | UMinusExpr(x) -> evalExpr(x)
-    | Index(x) -> evalExpr(x)
-    | _ -> false
+    | Index(array,index) ->  evalExpr(index)
 and evalLogic b =
     match b with
     | True(x) -> true
-    | False(x) -> false
+    | False(x) -> true
     | NotLogic(x) -> evalLogic(x)
     | AndSCLogic(x,y) -> evalLogic(x) && evalLogic(y)
     | AndLogic(x,y) -> evalLogic(x) && evalLogic(y)
@@ -40,8 +42,19 @@ and evalLogic b =
     | GTLogic(x,y) -> evalExpr(x) && evalExpr(y) 
     | GETLogic(x,y) -> evalExpr(x) && evalExpr(y) 
     | LTLogic(x,y) -> evalExpr(x) && evalExpr(y) 
-    | LETLogic(x,y) -> evalExpr(x) && evalExpr(y)  
-    | _ -> false
+    | LETLogic(x,y) -> evalExpr(x) && evalExpr(y) 
+and evalCmd c =
+    match c with
+    | IdentVar(id,exp) -> evalExpr(exp)
+    | IdentIndex(array, index, exp) -> evalExpr(index) && evalExpr(exp)
+    | Skip -> true
+    | NextCmd(cmd1, cmd2) -> evalCmd(cmd1) && evalCmd(cmd2)
+    | If (guarded) -> evalGC(guarded)
+    | Loop(guarded) -> evalGC(guarded)
+and evalGC gc =
+    match gc with
+    |Check(bool,cmd) -> evalLogic(bool) && evalCmd(cmd)
+    |NextGuarded(gc1,gc2) -> evalGC(gc1) && evalGC(gc2)
 
 
 
@@ -75,13 +88,13 @@ let rec compute n =
     if n = 0 then
         printfn "Bye bye"
     else
-        printfn "Enter an arithmetic expression: "
+        printfn "Enter a command: "
         try
         // We parse the input string
         let e = parse (Console.ReadLine())
         // and print the result of evaluating it
         //printfn "Result: %b" (evalExpr(e))
-        printfn "Result: %b" (evalLogic(e))
+        printfn "Result: %b" (evalCmd(e))
         compute n
         with err -> printfn "wrong syntax"
                     compute (n-1)
