@@ -14,6 +14,7 @@ let whitespace  = [' ' '\t']
 let newline     = "\n\r" | '\n' | '\r'
 let letter      = ['a'-'z' 'A'-'Z']
 let var         = letter (letter | digit)*
+let ident       = letter (letter | digit)*
 
 // We define now the rules for recognising and building tokens
 // for each of the tokens of our language we need a rule
@@ -25,6 +26,8 @@ rule tokenize = parse
 | newline       { lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf; }
 // deal with tokens that need to be built
 | num           { NUM(Double.Parse(LexBuffer<_>.LexemeString lexbuf)) }
+| var           { VAR(LexBuffer<_>.LexemeString lexbuf) }
+| ident         { IDENT(LexBuffer<_>.LexemeString lexbuf) }
 | '^'           { POW }
 | '*'           { TIMES }
 | '/'           { DIV }
@@ -47,6 +50,13 @@ rule tokenize = parse
 | ">="          { GET }
 | '<'           { LT }
 | "<="          { LET }
-| var           { VAR(LexBuffer<_>.LexemeString lexbuf) }
 | eof           { EOF }
-
+| "->"          { THEN }
+| "skip"        { SKIP }
+| "do"          { DO }
+| "od"          { OD }
+| "if"          { IF }
+| "fi"          { FI}
+| ' '           { SPACE }
+| ":="          { ASSIGN }
+| ";"           { SEMICOL }

@@ -13,52 +13,56 @@ open ParserParser
 #load "ParserLexer.fs"
 open ParserLexer
 
+
+
 // We define the evaluation function recursively, by induction on the structure
 // of arithmetic expressions (AST of type expr)
 let rec evalExpr e =
   match e with
-    | Num(x) -> true
-    | Var(x) -> true
+    | Num(x)                    -> true
+    | Var(x)                    -> true
     | TimesExpr(x,y)
     | DivExpr(x,y)
     | PlusExpr(x,y)
     | MinusExpr(x,y)
-    | PowExpr(x,y) -> evalExpr(x) && evalExpr (y)
-    | UPlusExpr(x)
-    | UMinusExpr(x)
-    | Index(x) -> evalExpr(x)
+    | PowExpr(x,y)              -> evalExpr(x) && evalExpr (y)
+    | UPlusExpr(x)              -> evalExpr(x)
+    | UMinusExpr(x)             -> evalExpr(x)
+    | Index(x)                  -> evalExpr(x)
 and evalLogic b =
     match b with
-    | True(x) -> true
-    | False(x) -> true
-    | NotLogic(x) -> evalLogic(x)
+    | True(x)                   -> true
+    | False(x)                  -> true
+    | NotLogic(x)               -> evalLogic(x)
     | AndSCLogic(x,y)
     | AndLogic(x,y)
     | OrLogic(x,y)
-    | OrSCLogic(x,y) -> evalLogic(x) && evalLogic(y)
+    | OrSCLogic(x,y)            -> evalLogic(x) && evalLogic(y)
     | EqualLogic(x,y)
     | NotEqualLogic(x,y)
     | GTLogic(x,y)
     | GETLogic(x,y)
     | LTLogic(x,y)
-    | LETLogic(x,y) -> evalExpr(x) && evalExpr(y)
+    | LETLogic(x,y)             -> evalExpr(x) && evalExpr(y)
+and evalIdent i =
+    match i with
+    | Identification(x)         -> true
+and evalCmd c =
+    match c with
+    | Assign(x,y)               -> evalIdent(x) && evalExpr(y)
+    | ArrAssign(x, y, z)        -> evalExpr(y) && evalExpr(z)
+    | Skip                      -> true
+    | CmdSequence(x,y)          -> evalCmd(x) && evalCmd(y)
+    | If(x)                     -> evalGrdCmd(x)
+    | Do(x)                     -> evalGrdCmd(x)
+and evalGrdCmd g =
+    match g with
+    | Then(x,y)                 -> evalLogic(x) && evalCmd(y)
+    | GrdCmdSequence(x,y)       -> evalGrdCmd(x) && evalGrdCmd(y)
+
+    
 
 
- //   match b with
- //   | True(x) -> true
- //   | False(x) -> false
- //   | NotLogic(x) -> not(evalLogic(x))
- //   | AndSCLogic(x,y) -> if evalLogic(x) then evalLogic(y) else false
- //   | AndLogic(x,y) -> if evalLogic(x) then (if evalLogic(y) then true else false) else false
- //   | OrLogic(x,y) -> if evalLogic(x) then true else evalLogic(y)
- //   | OrSCLogic(x,y) -> evalLogic(x) || evalLogic(y)
- //   | EqualLogic(x,y) -> evalExpr(x) = evalExpr(y) 
- //   | NotEqualLogic(x,y) -> evalExpr(x) <> evalExpr(y) 
- //   | GTLogic(x,y) -> evalExpr(x) > evalExpr(y) 
- //   | GETLogic(x,y) -> evalExpr(x) >= evalExpr(y) 
- //   | LTLogic(x,y) -> evalExpr(x) < evalExpr(y) 
- //   | LETLogic(x,y) -> evalExpr(x) <= evalExpr(y) 
- //   | _ -> false
 
 // We
 let parse input =
@@ -75,13 +79,14 @@ let rec compute n =
     if n = 0 then
         printfn "Bye bye"
     else
-        printfn "Enter an arithmetic expression: "
+        printfn "Enter a command: "
         try
         // We parse the input string
         let e = parse (Console.ReadLine())
         // and print the result of evaluating it
-        //printfn "Result: %b" (evalExpr(e))
+        // printfn "Result: %b" (evalExpr(e))
         printfn "Syntax correct - according to GCL grammar." 
+        compute n
         with err -> printfn "Syntax invalid - according to GCL grammar."
                     compute (n-1)
 
