@@ -14,20 +14,21 @@ let whitespace  = [' ' '\t']
 let newline     = "\n\r" | '\n' | '\r'
 let letter      = ['a'-'z' 'A'-'Z']
 let var         = letter (letter | digit)*
-let ident       = letter (letter | digit)*
 
 // We define now the rules for recognising and building tokens
 // for each of the tokens of our language we need a rule
 // NOTE: rules are applied in order top-down. 
 //       This is important when tokens overlap (not in this example)
 rule tokenize = parse
+| "if "          { IF }
+| " fi"          { FI }
+| "do "          { DO }
+| " od"          { OD }
 // deal with tokens that need to be ignored (skip them)
 | whitespace    { tokenize lexbuf }
 | newline       { lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf; }
 // deal with tokens that need to be built
 | num           { NUM(Double.Parse(LexBuffer<_>.LexemeString lexbuf)) }
-| var           { VAR(LexBuffer<_>.LexemeString lexbuf) }
-| ident         { IDENT(LexBuffer<_>.LexemeString lexbuf) }
 | '^'           { POW }
 | '*'           { TIMES }
 | '/'           { DIV }
@@ -35,28 +36,25 @@ rule tokenize = parse
 | '-'           { MINUS }
 | '('           { LPAR }
 | ')'           { RPAR }
+| "[]"         { OPTION }
 | '['           { LBRA }
 | ']'           { RBRA }
 | "true"        { TRUE }
 | "false"       { FALSE }
-| '!'           { NOT }
-| '&'           { AND }
-| '|'           { OR }
 | "&&"          { ANDSC }
 | "||"          { ORSC }
-| '='           { EQUAL }
-| "!="          { NOTEQUAL }
-| '>'           { GT }
+| '&'           { AND }
+| '|'           { OR }
 | ">="          { GET }
-| '<'           { LT }
 | "<="          { LET }
-| eof           { EOF }
-| "->"          { THEN }
+| "->"          { TO }
+| '>'           { GT }
+| '<'           { LT }
+| ":="          { IDENT }
+| "!="          { NOTEQUAL }
+| '!'           { NOT }
+| '='           { EQUAL }
+| ';'           { NEXT }
 | "skip"        { SKIP }
-| "do"          { DO }
-| "od"          { OD }
-| "if"          { IF }
-| "fi"          { FI}
-| ' '           { SPACE }
-| ":="          { ASSIGN }
-| ";"           { SEMICOL }
+| var           { VAR(LexBuffer<_>.LexemeString lexbuf) }
+| eof           { EOF }
