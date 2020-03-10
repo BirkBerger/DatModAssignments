@@ -2,7 +2,8 @@
 // to store represent arithmetic expressions
 module ParserTypesAST
 
-//arithmic
+
+// Arithmetic expressions
 type expr =
   | Num of float
   | TimesExpr of (expr * expr)
@@ -13,38 +14,33 @@ type expr =
   | UPlusExpr of (expr)
   | UMinusExpr of (expr)
   | Var of string
-  | Index of (expr)
+  | Index of (string*expr)
 
-//boolean
+// Boolean expressions
 type logic =
   | True of bool
   | False of bool
   | NotLogic of (logic)
-  | AndLogic of (logic * logic)
-  | AndSCLogic of (logic * logic)
-  | OrLogic of (logic * logic)
-  | OrSCLogic of (logic * logic)
-  | EqualLogic of (expr * expr)
-  | NotEqualLogic of (expr * expr)
-  | GTLogic of (expr * expr)
-  | GETLogic of (expr * expr)
-  | LTLogic of (expr * expr)
-  | LETLogic of (expr * expr)
+  | AndLogic of (logic*logic)
+  | AndSCLogic of (logic*logic)
+  | OrLogic of (logic*logic)
+  | OrSCLogic of (logic*logic)
+  | EqualLogic of (expr*expr)
+  | NotEqualLogic of (expr*expr)
+  | GTLogic of (expr*expr)
+  | GETLogic of (expr*expr)
+  | LTLogic of (expr*expr)
+  | LETLogic of (expr*expr)
 
-// identification
-type ident =
-  | Identification of string
-
-// command
+// Commands
 type cmd =
-  | Assign of (ident * expr)
-  | ArrAssign of (ident * expr * expr)
+  | AssignVar of (string*expr)
+  | AssignArr of (string*expr*expr)
   | Skip
-  | CmdSequence of (cmd * cmd)
-  | If of (grdCmd)
-  | Do of (grdCmd)
-// guardedCommand
+  | SeqCmd of (cmd*cmd)
+  | IfCmd of (grdCmd)
+  | DoCmd of (grdCmd)
+// Guarded commands
 and grdCmd =
-  | Then of (logic * cmd)
-  | GrdCmdSequence of (grdCmd * grdCmd)
-
+  | ThenGrdCmd of (logic*cmd)
+  | SeqGrdCmd of (grdCmd*grdCmd)
