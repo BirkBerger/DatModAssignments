@@ -59,11 +59,6 @@ and evalGrdCmd gc =
     | ThenGrdCmd(bool,cmd)          -> evalLogic(bool) && evalCmd(cmd)
     | SeqGrdCmd(gc1,gc2)            -> evalGrdCmd(gc1) && evalGrdCmd(gc2)
 
-let rec doneGrdCmd gc =
-    match gc with
-    | ThenGrdCmd(bool,cmd)          -> "not " + bool.ToString() 
-    | SeqGrdCmd(gc1,gc2)            -> (doneGrdCmd gc1) + " and " + (doneGrdCmd gc2)
-
 let rec expToString e =
     match e with
     | Num(x)                        -> x.ToString()
@@ -95,6 +90,15 @@ let rec logicToString b =
     | LETLogic(x,y)                 -> (expToString x) + "<=" + (expToString y)
     | ParenLogic(x)                 -> "(" + (logicToString x) + ")"
 
+let stateToString = function
+    | 1000 -> "qEnd"
+    | q     -> "q" + q.ToString()
+
+let rec doneGrdCmd gc =
+    match gc with
+    | ThenGrdCmd(bool,cmd)          -> "!(" + (logicToString bool)  + ")"
+    | SeqGrdCmd(gc1,gc2)            -> (doneGrdCmd gc1) + "&&" + (doneGrdCmd gc2)
+
 let rec edgesCmd q1 q2 qAcc c =
     match c with
     | AssignVar(var,exp)            -> [(q1, var + ":=" + (expToString exp), q2)]
@@ -110,10 +114,6 @@ and edgesGrdCmd q1 q2 qAcc gc =
     | ThenGrdCmd(bool,cmd)          -> let qFresh = qAcc + 1
                                        [(q1,(logicToString bool),qFresh)]@(edgesCmd qFresh q2 (qAcc+1) cmd)
     | SeqGrdCmd(gc1, gc2)           -> (edgesGrdCmd q1 q2 qAcc gc1)@(edgesGrdCmd q1 q2 qAcc gc2)
-
-let stateToString = function
-    | 1000 -> "qEnd"
-    | q     -> "q" + q.ToString()
 
 let rec printProgramTree eList =
     match eList with
