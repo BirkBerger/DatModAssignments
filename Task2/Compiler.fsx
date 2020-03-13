@@ -91,7 +91,8 @@ let rec logicToString b =
     | ParenLogic(x)                 -> "(" + (logicToString x) + ")"
 
 let stateToString = function
-    | 1000 -> "qEnd"
+    | 0 -> "q▷"
+    | 1000 -> "q◀"
     | q     -> "q" + q.ToString()
 
 let rec doneGrdCmd gc =
