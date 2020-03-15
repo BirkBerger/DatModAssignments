@@ -94,12 +94,6 @@ let rec logicToString b =
     | LETLogic(x,y)                 -> (expToString x) + "<=" + (expToString y)
     | ParenLogic(x)                 -> "(" + (logicToString x) + ")"
 
-// stateToString: Takes a state integer and outputs its corresponding state name
-let stateToString = function
-    | 0 -> "q▷"
-    | 1000 -> "q◀"
-    | q     -> "q" + q.ToString()
-
 // doneGrdCmdL: Outputs the label belonging to the edge expressing the non-satisfied input guarded command
 let rec doneGrdCmd gc =
     match gc with
@@ -143,11 +137,25 @@ and edgesD2 q1 q2 qAcc gc d =
                                        let (e2,d2) = edgesD2 q1 q2 qAcc gc2 d1
                                        (e1@e2,d2)
 
+
+
+
+let graphvizNotations = "digraph program_graph {rankdir=LR;
+                        node [shape = circle]; q▷;
+                        node [shape = doublecircle]; q◀;
+                        node [shape = circle]\n"
+
+// stateToString: Takes a state integer and outputs its corresponding state name
+let stateToString = function
+    | 0 -> "q▷"
+    | 1000 -> "q◀"
+    | q     -> "q" + q.ToString()
+
 // printProgramTree: Ouputs program tree in graphviz format of a given edge list
 let rec printProgramTree eList =
     match eList with
     | []                             -> ""
-    | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = " + label + "];\n" + (printProgramTree es)
+    | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + label + "\"];\n" + (printProgramTree es)
 
 
 
@@ -181,8 +189,8 @@ let rec compute n gType =
             printfn "Enter a command: "
             let e = parse (Console.ReadLine())
 
-            if (graphType = "D") then printfn "Program graph:\n%A" (printProgramTree (edgesCmd 0 1000 0 e))
-                                 else printfn "Program graph:\n%A" (printProgramTree (edgesD 0 1000 0 e))
+            if (graphType = "D") then printfn "Program graph:\n %s%A" graphvizNotations (printProgramTree (edgesCmd 0 1000 0 e))
+                                 else printfn "Program graph:\n %s%A" graphvizNotations (printProgramTree (edgesD 0 1000 0 e))
             compute n ""
 
             with err -> printfn "Invalid syntax according to GLC grammar"
