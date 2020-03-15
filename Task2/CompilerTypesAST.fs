@@ -19,8 +19,8 @@ type expr =
 
 // Boolean expressions
 type logic =
-  | True of bool
-  | False of bool
+  | TrueLogic
+  | FalseLogic
   | NotLogic of (logic)
   | AndLogic of (logic*logic)
   | AndSCLogic of (logic*logic)
@@ -47,7 +47,9 @@ and grdCmd =
   | ThenGrdCmd of (logic*cmd)
   | SeqGrdCmd of (grdCmd*grdCmd)
 
+// Edge labels
 type label = 
   | StringLabel of string
   | LogicLabel of logic
   | CmdLabel of cmd
+

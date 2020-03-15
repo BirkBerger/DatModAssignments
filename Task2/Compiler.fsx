@@ -13,52 +13,55 @@ open CompilerParser
 #load "CompilerLexer.fs"
 open CompilerLexer
 
+// ------------------ Task1: GLC parser ------------------ //
 
-
-// We define the evaluation function recursively, by induction on the structure
-// of arithmetic expressions (AST of type expr)
-let rec evalExpr e =
+// checkSyntaxExpr: Evaluates the correctness of the syntax of the input guarded commands code
+let rec checkSyntaxExpr e =
   match e with
     | Num(x)                        -> true
     | Var(x)                        -> true
-    | TimesExpr(x,y)                -> evalExpr(x) && evalExpr (y)
-    | DivExpr(x,y)                  -> evalExpr(x) && evalExpr (y)
-    | PlusExpr(x,y)                 -> evalExpr(x) && evalExpr (y)
-    | MinusExpr(x,y)                -> evalExpr(x) && evalExpr (y)
-    | PowExpr(x,y)                  -> evalExpr(x) && evalExpr (y)
-    | UPlusExpr(x)                  -> evalExpr(x)
-    | UMinusExpr(x)                 -> evalExpr(x)
-    | Index(array,index)            -> evalExpr(index)
-    | ParenExpr(x)                  -> evalExpr(x)
-and evalLogic b =
+    | TimesExpr(x,y)                -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
+    | DivExpr(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
+    | PlusExpr(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
+    | MinusExpr(x,y)                -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
+    | PowExpr(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
+    | UPlusExpr(x)                  -> checkSyntaxExpr(x)
+    | UMinusExpr(x)                 -> checkSyntaxExpr(x)
+    | Index(array,index)            -> checkSyntaxExpr(index)
+    | ParenExpr(x)                  -> checkSyntaxExpr(x)
+and checkSyntaxLogic b =
     match b with
-    | True(x)                       -> true
-    | False(x)                      -> true
-    | NotLogic(x)                   -> evalLogic(x)
-    | AndSCLogic(x,y)               -> evalLogic(x) && evalLogic(y)
-    | AndLogic(x,y)                 -> evalLogic(x) && evalLogic(y)
-    | OrLogic(x,y)                  -> evalLogic(x) && evalLogic(y)
-    | OrSCLogic(x,y)                -> evalLogic(x) && evalLogic(y)
-    | EqualLogic(x,y)               -> evalExpr(x) && evalExpr(y) 
-    | NotEqualLogic(x,y)            -> evalExpr(x) && evalExpr(y) 
-    | GTLogic(x,y)                  -> evalExpr(x) && evalExpr(y) 
-    | GETLogic(x,y)                 -> evalExpr(x) && evalExpr(y) 
-    | LTLogic(x,y)                  -> evalExpr(x) && evalExpr(y) 
-    | LETLogic(x,y)                 -> evalExpr(x) && evalExpr(y) 
-    | ParenLogic(x)                 -> evalLogic(x)
-and evalCmd c =
+    | TrueLogic                     -> true
+    | FalseLogic                    -> true
+    | NotLogic(x)                   -> checkSyntaxLogic(x)
+    | AndSCLogic(x,y)               -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
+    | AndLogic(x,y)                 -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
+    | OrLogic(x,y)                  -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
+    | OrSCLogic(x,y)                -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
+    | EqualLogic(x,y)               -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
+    | NotEqualLogic(x,y)            -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
+    | GTLogic(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
+    | GETLogic(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
+    | LTLogic(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
+    | LETLogic(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
+    | ParenLogic(x)                 -> checkSyntaxLogic(x)
+and checkSyntaxCmd c =
     match c with
-    | AssignVar(id,exp)             -> evalExpr(exp)
-    | AssignArr(array, index, exp)  -> evalExpr(index) && evalExpr(exp)
+    | AssignVar(id,exp)             -> checkSyntaxExpr(exp)
+    | AssignArr(array, index, exp)  -> checkSyntaxExpr(index) && checkSyntaxExpr(exp)
     | Skip                          -> true
-    | SeqCmd(cmd1, cmd2)            -> evalCmd(cmd1) && evalCmd(cmd2)
-    | IfCmd(grdCmd)                 -> evalGrdCmd(grdCmd)
-    | DoCmd(grdCmd)                 -> evalGrdCmd(grdCmd)
-and evalGrdCmd gc =
+    | SeqCmd(cmd1, cmd2)            -> checkSyntaxCmd(cmd1) && checkSyntaxCmd(cmd2)
+    | IfCmd(grdCmd)                 -> checkSyntaxGrdCmd(grdCmd)
+    | DoCmd(grdCmd)                 -> checkSyntaxGrdCmd(grdCmd)
+and checkSyntaxGrdCmd gc =
     match gc with
-    | ThenGrdCmd(bool,cmd)          -> evalLogic(bool) && evalCmd(cmd)
-    | SeqGrdCmd(gc1,gc2)            -> evalGrdCmd(gc1) && evalGrdCmd(gc2)
+    | ThenGrdCmd(bool,cmd)          -> checkSyntaxLogic(bool) && checkSyntaxCmd(cmd)
+    | SeqGrdCmd(gc1,gc2)            -> checkSyntaxGrdCmd(gc1) && checkSyntaxGrdCmd(gc2)
 
+
+// ------------------ Task2: GLC compiler ------------------ //
+
+// expToString: Converts the input arithmetic expression to string fit for edge labels
 let rec expToString e =
     match e with
     | Num(x)                        -> x.ToString()
@@ -73,11 +76,12 @@ let rec expToString e =
     | Index(array,index)            -> array + "[" + index.ToString() + "]"
     | ParenExpr(x)                 -> "(" + (expToString x) + ")"
 
+// logicToString: Converts the input boolean expression to string fit for edge labels
 let rec logicToString b =
     match b with
-    | True(x)                       -> "true"
-    | False(x)                      -> "false"
-    | NotLogic(x)                   -> "not " + x.ToString()
+    | TrueLogic                     -> "true"
+    | FalseLogic                    -> "false"
+    | NotLogic(x)                   -> "!" + x.ToString()
     | AndSCLogic(x,y)               -> (logicToString x) + "&&" + (logicToString y)
     | AndLogic(x,y)                 -> (logicToString x) + "&" + (logicToString y)
     | OrLogic(x,y)                  -> (logicToString x) + "|" + (logicToString y)
@@ -90,16 +94,19 @@ let rec logicToString b =
     | LETLogic(x,y)                 -> (expToString x) + "<=" + (expToString y)
     | ParenLogic(x)                 -> "(" + (logicToString x) + ")"
 
+// stateToString: Takes a state integer and outputs its corresponding state name
 let stateToString = function
     | 0 -> "q▷"
     | 1000 -> "q◀"
     | q     -> "q" + q.ToString()
 
+// doneGrdCmdL: Outputs the label belonging to the edge expressing the non-satisfied input guarded command
 let rec doneGrdCmd gc =
     match gc with
-    | ThenGrdCmd(bool,cmd)          -> "!(" + (logicToString bool)  + ")"
-    | SeqGrdCmd(gc1,gc2)            -> (doneGrdCmd gc1) + "&&" + (doneGrdCmd gc2)
+    | ThenGrdCmd(bool,cmd)          -> "!(" + (logicToString bool) + ")"
+    | SeqGrdCmd(gc1,gc2)            -> "(" + (doneGrdCmd gc1) + "&&" + (doneGrdCmd gc2) + ")"
 
+// edgesCmd: Converts the input command to a list of edges of the corresponding deterministic program graph 
 let rec edgesCmd q1 q2 qAcc c =
     match c with
     | AssignVar(var,exp)            -> [(q1, var + ":=" + (expToString exp), q2)]
@@ -116,10 +123,34 @@ and edgesGrdCmd q1 q2 qAcc gc =
                                        [(q1,(logicToString bool),qFresh)]@(edgesCmd qFresh q2 (qAcc+1) cmd)
     | SeqGrdCmd(gc1, gc2)           -> (edgesGrdCmd q1 q2 qAcc gc1)@(edgesGrdCmd q1 q2 qAcc gc2)
 
+// edgesD: Converts the input command to a list of edges of the corresponding non-deterministic program graph 
+let rec edgesD q1 q2 qAcc c =
+    match c with
+    | AssignVar(var,exp)            -> [(q1, var + ":=" + (expToString exp), q2)]
+    | AssignArr(array,index,exp)    -> [(q1, array + "[" + (expToString index) + "]:=" + (expToString exp), q2)]
+    | Skip                          -> [(q1, "skip", q2)]
+    | SeqCmd(cmd1,cmd2)             -> let qFresh = qAcc + 1
+                                       (edgesD q1 qFresh (qAcc+1) cmd1)@(edgesD qFresh q2 (qAcc+1) cmd2)
+    | IfCmd(gc)                     -> let (e,d) = edgesD2 q1 q2 qAcc gc "false"
+                                       e
+    | DoCmd(gc)                     -> let (e,d) = edgesD2 q1 q1 qAcc gc "false"
+                                       e@[(q1, "!(" + d + ")", q2)]
+and edgesD2 q1 q2 qAcc gc d =
+    match gc with
+    | ThenGrdCmd(bool,cmd)          -> let qFresh = qAcc + 1 
+                                       ([(q1, "(" + (logicToString bool) + ")&(!" + d + ")", qFresh)]@(edgesD qFresh q2 (qAcc+1) cmd), "(" + (logicToString bool) + ")" + "|" + d)
+    | SeqGrdCmd(gc1, gc2)           -> let (e1,d1) = edgesD2 q1 q2 qAcc gc1 d
+                                       let (e2,d2) = edgesD2 q1 q2 qAcc gc2 d1
+                                       (e1@e2,d2)
+
+// printProgramTree: Ouputs program tree in graphviz format of a given edge list
 let rec printProgramTree eList =
     match eList with
     | []                             -> ""
     | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = " + label + "];\n" + (printProgramTree es)
+
+
+
 
 // We
 let parse input =
@@ -130,21 +161,33 @@ let parse input =
     // return the result of parsing (i.e. value of type "expr")
     res
 
+// promtGraphType: Promts the user for graph type until either "D", "ND", or "E" is input
+let rec promtGraphType = function
+    | "D"           -> "D"
+    | "ND"          -> "ND"
+    | "E"           -> "E"
+    | _             -> printfn "\nEnter the following to chose program graph type:\nD - for deterministic, or \nND - for non-deterministic\nEnter E to exit.\n"
+                       promtGraphType (Console.ReadLine())
+
 // We implement here the function that interacts with the user
-let rec compute n =
+let rec compute n gType =
     if n = 0 then
         printfn "Bye bye"
     else
-        printfn "Enter a command: "
-        try
-        // We parse the input string
-        let e = parse (Console.ReadLine())
-        // and print the result of evaluating it
-        printfn "Result: %A" e 
-        printfn "Program graph:\n%A" (printProgramTree (edgesCmd 0 1000 0 e))
-        compute n
-        with err -> printfn "Invalid syntax according to GLC grammar"
-                    compute (n-1)
+        let graphType = if (gType = "") then promtGraphType gType else gType
+        if graphType = "E" then (compute 0 "")
+        else 
+            try
+            printfn "Enter a command: "
+            let e = parse (Console.ReadLine())
+
+            if (graphType = "D") then printfn "Program graph:\n%A" (printProgramTree (edgesCmd 0 1000 0 e))
+                                 else printfn "Program graph:\n%A" (printProgramTree (edgesD 0 1000 0 e))
+            compute n ""
+
+            with err -> printfn "Invalid syntax according to GLC grammar"
+                        compute (n-1) graphType
+                        
 
 // Start interacting with the user
-compute 3
+compute 3 ""

@@ -452,7 +452,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 63 "CompilerParser.fsp"
-                                          True(true) 
+                                          TrueLogic 
                    )
 # 63 "CompilerParser.fsp"
                  : logic));
@@ -462,7 +462,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 64 "CompilerParser.fsp"
-                                           False(false) 
+                                           FalseLogic 
                    )
 # 64 "CompilerParser.fsp"
                  : logic));
