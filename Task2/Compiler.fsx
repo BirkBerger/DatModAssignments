@@ -189,8 +189,8 @@ let rec compute n gType =
             printfn "Enter a command: "
             let e = parse (Console.ReadLine())
 
-            if (graphType = "D") then printfn "Program graph:\n %s%A" graphvizNotations (printProgramTree (edgesCmd 0 1000 0 e))
-                                 else printfn "Program graph:\n %s%A" graphvizNotations (printProgramTree (edgesD 0 1000 0 e))
+            if (graphType = "D") then printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (edgesCmd 0 1000 0 e))
+                                 else printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (edgesD 0 1000 0 e))
             compute n ""
 
             with err -> printfn "Invalid syntax according to GLC grammar"
