@@ -13,6 +13,25 @@ open InterpreterParser
 #load "InterpreterLexer.fs"
 open InterpreterLexer
 
+#load "InitializerParser.fs"
+open InitializerParser
+#load "InitializerLexer.fs"
+open InitializerLexer
+
+let rec getArrList name list index =
+    match list with
+    | NumElem(x)        -> [(ArrElem(name,index),x)]
+    | ElemSeq(x,xs)     -> [(ArrElem(name,index),x)]@(getArrList name xs (index+1))
+
+let rec getMemList a =
+    match a with
+    | VarInit(x,y)      -> [(VarElem(x),y)]
+    | ArrInit(x,y)      -> (getArrList x y 0)
+    | SeqInit(x,y)      -> (getMemList x)@(getMemList y)
+
+let rec getMemMap a = Map.ofList (getMemList a)
+
+
 // ------------------ Task1: GLC parser ------------------ //
 
 // checkSyntaxExpr: Evaluates the correctness of the syntax of the input guarded commands code
@@ -167,6 +186,14 @@ let parse input =
     let res = InterpreterParser.start InterpreterLexer.tokenize lexbuf
     // return the result of parsing (i.e. value of type "expr")
     res
+let parse2 input =
+    // translate string into a buffer of characters
+    let lexbuf = LexBuffer<char>.FromString input
+    // translate the buffer into a stream of tokens and parse them
+    let res = InitializerParser.start InitializerLexer.tokenize lexbuf
+    // return the result of parsing (i.e. value of type "expr")
+    res
+
 
 // promtGraphType: Promts the user for graph type until either "D", "ND", or "E" is input
 let rec promtGraphType input = 
@@ -175,24 +202,21 @@ let rec promtGraphType input =
     | _                     -> printfn "\nEnter the following to chose program graph type:\nD - for deterministic, or \nND - for non-deterministic\nEnter E to exit.\n"
                                promtGraphType (Console.ReadLine())
 
+
 // We implement here the function that interacts with the user
 let rec compute n gType =
     if n = 0 then
         printfn "Bye bye"
     else
-        let graphType = if (gType = "") then promtGraphType gType else gType
-        if graphType = "E" then (compute 0 "")
-        else 
-            try
-            printfn "Enter a command: "
-            let e = parse (Console.ReadLine())
+        try
+        printfn "Enter initial variable and array values"
+        let e = parse2 (Console.ReadLine())
+        printfn "Initial memory:\n%A" (getMemMap e)
 
-            if (graphType = "D") then printfn "Program graph:\n %s%s}" graphvizIntro (printProgramTree (edgesCmd 0 -1 0 e))
-                                 else printfn "Program graph:\n %s%s}" graphvizIntro (printProgramTree (edgesD 0 -1 0 e))
-            compute n ""
+        compute n ""
 
-            with err -> printfn "Invalid syntax according to GLC grammar"
-                        compute (n-1) graphType
+        with err -> printfn "Invalid initialization syntax"
+                    compute (n-1) ""
                         
 
 // Start interacting with the user

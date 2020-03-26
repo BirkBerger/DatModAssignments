@@ -52,3 +52,19 @@ type label =
   | StringLabel of string
   | LogicLabel of logic
   | CmdLabel of cmd
+
+
+//
+type init =
+  | VarInit of string * float
+  | ArrInit of string * arrElem
+  | SeqInit of init * init
+and arrElem =
+  | NumElem of float
+  | ElemSeq of float * arrElem
+
+type mapKey = 
+  | VarElem of string
+  | ArrElem of string * int
+  
+type memory = Map<mapKey,float>

@@ -1,0 +1,34 @@
+// The generated lexer module will start with this code
+{
+module InitializerLexer
+open FSharp.Text.Lexing
+open System
+// open the module that defines the tokens
+open InitializerParser
+}
+
+// We define macros for some regular expressions we will use later
+let digit       = ['0'-'9']
+let num         = digit+ ( '.' digit+)?  ('E' ('+'|'-')? digit+ )?
+let whitespace  = [' ' '\t']
+let newline     = "\n\r" | '\n' | '\r'
+let letter      = ['a'-'z' 'A'-'Z']
+let var         = letter (letter | digit)*
+
+// We define now the rules for recognising and building tokens
+// for each of the tokens of our language we need a rule
+// NOTE: rules are applied in order top-down. 
+//       This is important when tokens overlap (not in this example)
+rule tokenize = parse
+// deal with tokens that need to be ignored (skip them)
+| whitespace    { tokenize lexbuf }
+| newline       { lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf; }
+// deal with tokens that need to be built
+| num           { NUM2(Double.Parse(LexBuffer<_>.LexemeString lexbuf)) }
+| '['           { LBRA2 }
+| ']'           { RBRA2 }
+| '='           { EQUAL2 }
+| ','           { SEPAR }
+| var           { VAR2(LexBuffer<_>.LexemeString lexbuf) }
+// Arithmetic expressions
+| eof           { EOF }
