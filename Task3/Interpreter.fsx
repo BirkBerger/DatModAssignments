@@ -1,9 +1,9 @@
-// This script implements our interactive calculator
+/ This script implements our interactive calculator
 
 // We need to import a couple of modules, including the generated lexer and parser
 // #r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
-#r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
-// #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+//#r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+ #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
 open FSharp.Text.Lexing
 open System
 #load "InterpreterTypesAST.fs"
@@ -18,16 +18,16 @@ open InterpreterLexer
 // checkSyntaxExpr: Evaluates the correctness of the syntax of the input guarded commands code
 let rec checkSyntaxExpr e =
   match e with
-    | Num(x)                        -> true
-    | Var(x)                        -> true
-    | TimesExpr(x,y)                -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | DivExpr(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | PlusExpr(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | MinusExpr(x,y)                -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | PowExpr(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | UPlusExpr(x)                  -> checkSyntaxExpr(x)
-    | UMinusExpr(x)                 -> checkSyntaxExpr(x)
-    | Index(array,index)            -> checkSyntaxExpr(index)
+    | Num(x)                        -> x
+    | Var(x)                        -> x
+    | TimesExpr(x,y)                -> checkSyntaxExpr(x) * checkSyntaxExpr (y)
+    | DivExpr(x,y)                  -> checkSyntaxExpr(x) / checkSyntaxExpr (y)
+    | PlusExpr(x,y)                 -> checkSyntaxExpr(x) + checkSyntaxExpr (y)
+    | MinusExpr(x,y)                -> checkSyntaxExpr(x) - checkSyntaxExpr (y)
+    | PowExpr(x,y)                  -> checkSyntaxExpr(x) ** checkSyntaxExpr (y)
+    | UPlusExpr(x)                  -> + checkSyntaxExpr(x)
+    | UMinusExpr(x)                 -> - checkSyntaxExpr(x)
+    | Index(array,index)            -> checkSyntaxExpr(array[index])
     | ParenExpr(x)                  -> checkSyntaxExpr(x)
 and checkSyntaxLogic b =
     match b with
@@ -35,20 +35,20 @@ and checkSyntaxLogic b =
     | FalseLogic                    -> true
     | NotLogic(x)                   -> checkSyntaxLogic(x)
     | AndSCLogic(x,y)               -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | AndLogic(x,y)                 -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | OrLogic(x,y)                  -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | OrSCLogic(x,y)                -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | EqualLogic(x,y)               -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | NotEqualLogic(x,y)            -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | GTLogic(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | GETLogic(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | LTLogic(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | LETLogic(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
+    | AndLogic(x,y)                 -> (checkSyntaxLogic(x) && checkSyntaxLogic(y)) && (checkSyntaxLogic(x) && checkSyntaxLogic(y))
+    | OrLogic(x,y)                  -> (checkSyntaxLogic(x) || checkSyntaxLogic(y)) && (checkSyntaxLogic(x) || checkSyntaxLogic(y))
+    | OrSCLogic(x,y)                -> checkSyntaxLogic(x) || checkSyntaxLogic(y)
+    | EqualLogic(x,y)               -> checkSyntaxExpr(x) = checkSyntaxExpr(y) 
+    | NotEqualLogic(x,y)            -> checkSyntaxExpr(x) <> checkSyntaxExpr(y) 
+    | GTLogic(x,y)                  -> checkSyntaxExpr(x) > checkSyntaxExpr(y) 
+    | GETLogic(x,y)                 -> checkSyntaxExpr(x) >= checkSyntaxExpr(y) 
+    | LTLogic(x,y)                  -> checkSyntaxExpr(x) < checkSyntaxExpr(y) 
+    | LETLogic(x,y)                 -> checkSyntaxExpr(x) <= checkSyntaxExpr(y) 
     | ParenLogic(x)                 -> checkSyntaxLogic(x)
 and checkSyntaxCmd c =
     match c with
     | AssignVar(id,exp)             -> checkSyntaxExpr(exp)
-    | AssignArr(array, index, exp)  -> checkSyntaxExpr(index) && checkSyntaxExpr(exp)
+    | AssignArr(array, index, exp)  -> array[checkSyntaxExpr(index)] = checkSyntaxExpr(exp)
     | Skip                          -> true
     | SeqCmd(cmd1, cmd2)            -> checkSyntaxCmd(cmd1) && checkSyntaxCmd(cmd2)
     | IfCmd(grdCmd)                 -> checkSyntaxGrdCmd(grdCmd)
@@ -176,10 +176,8 @@ let rec printProgramTree eList =
     match variables with
     |[]              -> ""
     |(name, num)::vs -> name + ": " + num + "\n" + printVariables vs
-
 let printStatus q status variables = 
     "status: " + status + "\n Node: " + (string) q + "\n" + (printVariables variables)
-
 let interpreter q eListFull eList variables =
     match eList with
     | []                when q=1000  ->  printStatus q "terminated" variables
