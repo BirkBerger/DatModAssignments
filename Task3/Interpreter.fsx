@@ -1,33 +1,34 @@
 // This script implements our interactive calculator
 
 // We need to import a couple of modules, including the generated lexer and parser
-#r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
-// #r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
-// #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+#r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                                                                   // Thea
+// #r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"  // Vivian
+// #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                   // Amalie
 open FSharp.Text.Lexing
 open System
+// CG language parser and lexer
 #load "InterpreterTypesAST.fs"
 open InterpreterTypesAST
 #load "InterpreterParser.fs"
 open InterpreterParser
 #load "InterpreterLexer.fs"
 open InterpreterLexer
-
+// Initializer language parser and lexer
 #load "InitializerParser.fs"
 open InitializerParser
 #load "InitializerLexer.fs"
 open InitializerLexer
 
-let rec getArrList name list index =
-    match list with
-    | NumElem(x)        -> [(ArrElem(name,index),x)]
-    | ElemSeq(x,xs)     -> [(ArrElem(name,index),x)]@(getArrList name xs (index+1))
 
 let rec getMemList a =
     match a with
     | VarInit(x,y)      -> [(VarElem(x),y)]
-    | ArrInit(x,y)      -> (getArrList x y 0)
+    | ArrInit(x,y)      -> (getArrMemList x y 0)
     | SeqInit(x,y)      -> (getMemList x)@(getMemList y)
+and getArrMemList name mlist index =
+    match mlist with
+    | NumElem(x)        -> [(ArrElem(name,index),x)]
+    | ElemSeq(x,xs)     -> [(ArrElem(name,index),x)]@(getArrMemList name xs (index+1))
 
 let rec getMemMap a = Map.ofList (getMemList a)
 
