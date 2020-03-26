@@ -34,7 +34,7 @@ type token =
   | TO
   | EOF
   | VAR of (string)
-  | NUM of (float)
+  | NUM of (int)
 type tokenId = 
     | TOKEN_TIMES
     | TOKEN_DIV

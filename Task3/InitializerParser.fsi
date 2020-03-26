@@ -7,7 +7,7 @@ type token =
   | SEPAR
   | EOF
   | VAR2 of (string)
-  | NUM2 of (float)
+  | NUM2 of (int)
 type tokenId = 
     | TOKEN_LBRA2
     | TOKEN_RBRA2

@@ -5,7 +5,7 @@ module InterpreterTypesAST
 
 // Arithmetic expressions
 type expr =
-  | Num of float
+  | Num of int
   | TimesExpr of (expr * expr)
   | DivExpr of (expr * expr)
   | PlusExpr of (expr * expr)
@@ -56,15 +56,22 @@ type label =
 
 //
 type init =
-  | VarInit of string * float
+  | VarInit of string * int
   | ArrInit of string * arrElem
   | SeqInit of init * init
 and arrElem =
-  | NumElem of float
-  | ElemSeq of float * arrElem
+  | NumElem of int
+  | ElemSeq of int * arrElem
+
 
 type mapKey = 
   | VarElem of string
   | ArrElem of string * int
   
-type memory = Map<mapKey,float>
+type memory = Map<mapKey,int>
+
+type AST =
+  | Command of cmd
+  | CommandD of cmd*string
+  | GuardedND of grdCmd
+  | GuardedD of grdCmd*string

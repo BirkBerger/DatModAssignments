@@ -43,7 +43,7 @@ type token =
   | TO
   | EOF
   | VAR of (string)
-  | NUM of (float)
+  | NUM of (int)
 // This type is used to give symbolic names to token indexes, useful for error messages
 type tokenId = 
     | TOKEN_TIMES
@@ -403,7 +403,7 @@ let _fsyacc_reductions ()  =    [|
                  : expr));
 # 404 "InterpreterParser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : float)) in
+            let _1 = (let data = parseState.GetInput(1) in (Microsoft.FSharp.Core.Operators.unbox data : int)) in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (

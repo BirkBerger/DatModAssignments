@@ -34,48 +34,70 @@ let rec getMemMap a = Map.ofList (getMemList a)
 
 // ------------------ Task1: GLC parser ------------------ //
 
-// checkSyntaxExpr: Evaluates the correctness of the syntax of the input guarded commands code
-let rec checkSyntaxExpr e =
+let rec power x y =
+    match y with
+    | 0 -> x
+    | y when y > 0 -> power (x*x) (y-1)
+    | _ -> failwith "cannot have negative exponent"
+
+// evalExpr: Evaluates the correctness of the syntax of the input guarded commands code
+let rec evalExpr e mem =
   match e with
-    | Num(x)                        -> true
-    | Var(x)                        -> true
-    | TimesExpr(x,y)                -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | DivExpr(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | PlusExpr(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | MinusExpr(x,y)                -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | PowExpr(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr (y)
-    | UPlusExpr(x)                  -> checkSyntaxExpr(x)
-    | UMinusExpr(x)                 -> checkSyntaxExpr(x)
-    | Index(array,index)            -> checkSyntaxExpr(index)
-    | ParenExpr(x)                  -> checkSyntaxExpr(x)
-and checkSyntaxLogic b =
+    | Num(x)                        -> x
+    | Var(x)                        -> Map.find (VarElem(x)) mem // TODO: make stuck if not exist in map
+    | TimesExpr(x,y)                -> (evalExpr x mem) * (evalExpr y mem)
+    | DivExpr(x,y)                  -> (evalExpr x mem) / (evalExpr y mem)
+    | PlusExpr(x,y)                 -> (evalExpr x mem) + (evalExpr y mem)
+    | MinusExpr(x,y)                -> (evalExpr x mem) - (evalExpr y mem)
+    | PowExpr(x,y)                  -> power (evalExpr x mem) (evalExpr y mem)
+    | UPlusExpr(x)                  -> (evalExpr x mem)
+    | UMinusExpr(x)                 -> (-1) * (evalExpr x mem)
+    | Index(name,index)             -> Map.find (ArrElem(name, evalExpr index mem)) mem 
+    | ParenExpr(x)                  -> (evalExpr x mem)
+
+// A = [2,4]
+// map [(VarElem(x), 3);
+//      (VarElem(y), 2); 
+//      (ArrElem(A,0), 2);
+//      (ArrElem(A,1), 4)]
+
+let rec evalLogic b mem =
     match b with
     | TrueLogic                     -> true
-    | FalseLogic                    -> true
-    | NotLogic(x)                   -> checkSyntaxLogic(x)
-    | AndSCLogic(x,y)               -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | AndLogic(x,y)                 -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | OrLogic(x,y)                  -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | OrSCLogic(x,y)                -> checkSyntaxLogic(x) && checkSyntaxLogic(y)
-    | EqualLogic(x,y)               -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | NotEqualLogic(x,y)            -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | GTLogic(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | GETLogic(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | LTLogic(x,y)                  -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | LETLogic(x,y)                 -> checkSyntaxExpr(x) && checkSyntaxExpr(y) 
-    | ParenLogic(x)                 -> checkSyntaxLogic(x)
-and checkSyntaxCmd c =
+    | FalseLogic                    -> false
+    | NotLogic(x)                   -> evalLogic x mem
+    | AndSCLogic(x,y)               -> (evalLogic x mem) && (evalLogic y mem)
+    | AndLogic(x,y)                 -> ((evalLogic x mem) && (evalLogic y mem)) && ((evalLogic y mem) && (evalLogic x mem))
+    | OrLogic(x,y)                  -> ((evalLogic x mem) || (evalLogic y mem)) && ((evalLogic y mem) || (evalLogic x mem))
+    | OrSCLogic(x,y)                -> (evalLogic x mem) || (evalLogic y mem)
+    | EqualLogic(x,y)               -> (evalExpr x mem) = (evalExpr y mem) 
+    | NotEqualLogic(x,y)            -> (evalExpr x mem) <> (evalExpr y mem) 
+    | GTLogic(x,y)                  -> (evalExpr x mem) > (evalExpr y mem) 
+    | GETLogic(x,y)                 -> (evalExpr x mem) >= (evalExpr y mem) 
+    | LTLogic(x,y)                  -> (evalExpr x mem) < (evalExpr y mem) 
+    | LETLogic(x,y)                 -> (evalExpr x mem) <= (evalExpr y mem) 
+    | ParenLogic(x)                 -> (evalLogic x mem)
+
+// type mapKey = 
+//   | VarElem of string
+//   | ArrElem of string * int
+// type memory = Map<mapKey,int>
+  
+let rec evalCmd c mem =
     match c with
-    | AssignVar(id,exp)             -> checkSyntaxExpr(exp)
-    | AssignArr(array, index, exp)  -> checkSyntaxExpr(index) && checkSyntaxExpr(exp)
-    | Skip                          -> true
-    | SeqCmd(cmd1, cmd2)            -> checkSyntaxCmd(cmd1) && checkSyntaxCmd(cmd2)
-    | IfCmd(grdCmd)                 -> checkSyntaxGrdCmd(grdCmd)
-    | DoCmd(grdCmd)                 -> checkSyntaxGrdCmd(grdCmd)
-and checkSyntaxGrdCmd gc =
+    | AssignVar(id,exp)             -> let varValue = evalExpr exp mem
+                                       Map.add (VarElem(id)) varValue (Map.remove (VarElem(id)) mem)
+    | AssignArr(name, index, exp)   -> let arrayIndex = evalExpr index mem
+                                       let newArrayElem = evalExpr exp mem
+                                       Map.add (ArrElem(name, arrayIndex)) newArrayElem (Map.remove (ArrElem(name, arrayIndex)) mem)
+    | Skip                          -> mem
+    | SeqCmd(cmd1, cmd2)            -> evalCmd cmd2 (evalCmd cmd1 mem)
+    | IfCmd(grdCmd)                 -> evalGrdCmd grdCmd mem
+    | DoCmd(grdCmd)                 -> evalGrdCmd grdCmd mem
+and evalGrdCmd gc mem =
     match gc with
-    | ThenGrdCmd(bool,cmd)          -> checkSyntaxLogic(bool) && checkSyntaxCmd(cmd)
-    | SeqGrdCmd(gc1,gc2)            -> checkSyntaxGrdCmd(gc1) && checkSyntaxGrdCmd(gc2)
+    | ThenGrdCmd(bool,cmd)          -> if (evalLogic bool mem) then (evalCmd cmd mem) else mem
+    | SeqGrdCmd(gc1,gc2)            -> evalGrdCmd gc2 (evalGrdCmd gc1 mem)
 
 
 // ------------------ Task2: GLC compiler ------------------ //
@@ -122,36 +144,35 @@ let rec doneGrdCmd gc =
 // edgesCmd: Converts the input command to a list of edges of the corresponding deterministic program graph 
 let rec edgesCmd q1 q2 qAcc c =
     match c with
-    | AssignVar(var,exp)            -> [(q1, var + ":=" + (expToString exp), q2)]
-    | AssignArr(array,index,exp)    -> [(q1, array + "[" + (expToString index) + "]:=" + (expToString exp), q2)]
-    | Skip                          -> [(q1, "skip", q2)]
+    | AssignVar(var,exp)            -> [(q1, Command(c), q2)]
+    | AssignArr(array,index,exp)    -> [(q1, Command(c), q2)]
+    | Skip                          -> [(q1, Command(c), q2)]
     | SeqCmd(cmd1,cmd2)             -> let qFresh = qAcc + 1
                                        (edgesCmd q1 qFresh (qAcc+1) cmd1)@(edgesCmd qFresh q2 (qAcc+1) cmd2)
     | IfCmd(grdCmd)                 -> edgesGrdCmd q1 q2 qAcc grdCmd
-    | DoCmd(grdCmd)                 -> let b = doneGrdCmd grdCmd
-                                       (edgesGrdCmd q1 q1 qAcc grdCmd)@[(q1,b,q2)]
+    | DoCmd(grdCmd)                 -> (edgesGrdCmd q1 q1 qAcc grdCmd)@[(q1,Command(c),q2)]
 and edgesGrdCmd q1 q2 qAcc gc =
     match gc with
     | ThenGrdCmd(bool,cmd)          -> let qFresh = qAcc + 1
-                                       [(q1,(logicToString bool),qFresh)]@(edgesCmd qFresh q2 (qAcc+1) cmd)
+                                       [(q1,GuardedND(gc),qFresh)]@(edgesCmd qFresh q2 (qAcc+1) cmd)
     | SeqGrdCmd(gc1, gc2)           -> (edgesGrdCmd q1 q2 qAcc gc1)@(edgesGrdCmd q1 q2 qAcc gc2)
 
 // edgesD: Converts the input command to a list of edges of the corresponding non-deterministic program graph 
 let rec edgesD q1 q2 qAcc c =
     match c with
-    | AssignVar(var,exp)            -> [(q1, var + ":=" + (expToString exp), q2)]
-    | AssignArr(array,index,exp)    -> [(q1, array + "[" + (expToString index) + "]:=" + (expToString exp), q2)]
-    | Skip                          -> [(q1, "skip", q2)]
+    | AssignVar(var,exp)            -> [(q1, Command(c), q2)]
+    | AssignArr(array,index,exp)    -> [(q1, Command(c), q2)]
+    | Skip                          -> [(q1, Command(c), q2)]
     | SeqCmd(cmd1,cmd2)             -> let qFresh = qAcc + 1
                                        (edgesD q1 qFresh (qAcc+1) cmd1)@(edgesD qFresh q2 (qAcc+1) cmd2)
     | IfCmd(gc)                     -> let (e,d) = edgesD2 q1 q2 qAcc gc "false"
                                        e
     | DoCmd(gc)                     -> let (e,d) = edgesD2 q1 q1 qAcc gc "false"
-                                       e@[(q1, "!(" + d + ")", q2)]
+                                       e@[(q1, CommandD(c,d), q2)]
 and edgesD2 q1 q2 qAcc gc d =
     match gc with
     | ThenGrdCmd(bool,cmd)          -> let qFresh = qAcc + 1 
-                                       ([(q1, "(" + (logicToString bool) + ")&(!" + d + ")", qFresh)]@(edgesD qFresh q2 (qAcc+1) cmd), "(" + (logicToString bool) + ")" + "|" + d)
+                                       ([(q1, GuardedD(gc,d), qFresh)]@(edgesD qFresh q2 (qAcc+1) cmd), "(" + (logicToString bool) + ")" + "|" + d)
     | SeqGrdCmd(gc1, gc2)           -> let (e1,d1) = edgesD2 q1 q2 qAcc gc1 d
                                        let (e2,d2) = edgesD2 q1 q2 qAcc gc2 d1
                                        (e1@e2,d2)
@@ -159,10 +180,10 @@ and edgesD2 q1 q2 qAcc gc d =
 
 
 
-let graphvizIntro = "digraph program_graph {rankdir=LR;
+let graphvizNotations = "digraph program_graph {rankdir=LR;
                         node [shape = circle]; q▷;
                         node [shape = doublecircle]; q◀;
-                        node [shape = circle]\n"
+                        node [shape = circle]\n";;
 
 // stateToString: Takes a state integer and outputs its corresponding state name
 let stateToString = function
@@ -170,11 +191,42 @@ let stateToString = function
     | -1        -> "q◀"
     | q         -> "q" + q.ToString()
 
+//printLabel: Outputs the labels to the edges in the programtree
+let printLabel(label) =
+    match label with
+    |Command(x)            ->     match x with
+                                    | AssignVar(var,exp)            ->  var + ":=" + (expToString exp)
+                                    | AssignArr(array,index,exp)    -> array + "[" + (expToString index) + "]:=" + (expToString exp)
+                                    | Skip                          -> "skip"
+                                    | DoCmd(grdCmd)                 -> doneGrdCmd grdCmd
+    | GuardedND(x)         ->     match  x with
+                                    | ThenGrdCmd(bool,cmd)          -> logicToString(bool)
+    | CommandD(x,s)        ->     match  (x,s) with
+                                    | (DoCmd(gc),d)                 -> "!(" + d + ")"
+    | GuardedD(x,s)        ->     match (x,s) with
+                                    | (ThenGrdCmd(bool,cmd),d)      -> "(" + (logicToString bool) + ")&(!" + d + ")"
+
 // printProgramTree: Ouputs program tree in graphviz format of a given edge list
 let rec printProgramTree eList =
     match eList with
     | []                             -> ""
-    | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + label + "\"];\n" + (printProgramTree es)
+    | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + printLabel(label) + "\"];\n" + (printProgramTree es)
+
+
+(* let rec printVariables variables =
+    match variables with
+    |[]              -> ""
+    |(name, num)::vs -> name + ": " + num + "\n" + printVariables vs
+let printStatus q status variables = 
+    "status: " + status + "\n Node: " + (string) q + "\n" + (printVariables variables)
+let interpreter q eListFull eList variables =
+    match eList with
+    | []                when q=1000  ->  printStatus q "terminated" variables
+    | []                             ->  printStatus q "stuck" variables
+    | (q1,label,q2)::es  when q1==q  ->  Calculate(label)
+                                         interpreter q2 eListFull eListFull variables
+    | (_,_,_)::es                    ->  interpreter q eListFull es variables ;; *)
+
 
 
 
@@ -210,12 +262,20 @@ let rec compute n gType =
     else
         try
         printfn "Enter initial variable and array values"
-        let e = parse2 (Console.ReadLine())
-        printfn "Initial memory:\n%A" (getMemMap e)
+        let e1 = parse2 (Console.ReadLine())
+        printfn "Initial memory:\n%A" (getMemMap e1)
+
+
+        printfn "Enter a command: "
+        let e2 = parse (Console.ReadLine())
+
+        let programtree = edgesCmd 0 -1 0 e2
+        printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (programtree))
+        //   interpreter q0 programtree programtree variables
 
         compute n ""
 
-        with err -> printfn "Invalid initialization syntax"
+        with err -> printfn "Invalid initialization or command syntax"
                     compute (n-1) ""
                         
 

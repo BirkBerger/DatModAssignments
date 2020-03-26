@@ -4,7 +4,7 @@ open InterpreterTypesAST
 %}
 
 // Declare the tokens (terminal symbols)
-%token <float> NUM2
+%token <int> NUM2
 %token <string> VAR2
 %token LBRA2 RBRA2 EQUAL2 SEPAR EOF 
 // NOTE: the actual formats of these tokens are defined in the lexer file
