@@ -52,4 +52,3 @@ type label =
   | StringLabel of string
   | LogicLabel of logic
   | CmdLabel of cmd
-

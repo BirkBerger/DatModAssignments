@@ -140,23 +140,22 @@ and edgesD2 q1 q2 qAcc gc d =
 
 
 
-let graphvizNotations = "digraph program_graph {rankdir=LR;
+let graphvizIntro = "digraph program_graph {rankdir=LR;
                         node [shape = circle]; q▷;
                         node [shape = doublecircle]; q◀;
                         node [shape = circle]\n"
 
 // stateToString: Takes a state integer and outputs its corresponding state name
 let stateToString = function
-    | 0 -> "q▷"
-    | 1000 -> "q◀"
-    | q     -> "q" + q.ToString()
+    | 0         -> "q▷"
+    | -1        -> "q◀"
+    | q         -> "q" + q.ToString()
 
 // printProgramTree: Ouputs program tree in graphviz format of a given edge list
 let rec printProgramTree eList =
     match eList with
     | []                             -> ""
     | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + label + "\"];\n" + (printProgramTree es)
-
 
 
 
@@ -170,12 +169,11 @@ let parse input =
     res
 
 // promtGraphType: Promts the user for graph type until either "D", "ND", or "E" is input
-let rec promtGraphType = function
-    | "D"           -> "D"
-    | "ND"          -> "ND"
-    | "E"           -> "E"
-    | _             -> printfn "\nEnter the following to chose program graph type:\nD - for deterministic, or \nND - for non-deterministic\nEnter E to exit.\n"
-                       promtGraphType (Console.ReadLine())
+let rec promtGraphType input = 
+    match input with
+    | "D" | "ND" | "E"      -> input
+    | _                     -> printfn "\nEnter the following to chose program graph type:\nD - for deterministic, or \nND - for non-deterministic\nEnter E to exit.\n"
+                               promtGraphType (Console.ReadLine())
 
 // We implement here the function that interacts with the user
 let rec compute n gType =
@@ -189,8 +187,8 @@ let rec compute n gType =
             printfn "Enter a command: "
             let e = parse (Console.ReadLine())
 
-            if (graphType = "D") then printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (edgesCmd 0 1000 0 e))
-                                 else printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (edgesD 0 1000 0 e))
+            if (graphType = "D") then printfn "Program graph:\n %s%s}" graphvizIntro (printProgramTree (edgesCmd 0 -1 0 e))
+                                 else printfn "Program graph:\n %s%s}" graphvizIntro (printProgramTree (edgesD 0 -1 0 e))
             compute n ""
 
             with err -> printfn "Invalid syntax according to GLC grammar"
