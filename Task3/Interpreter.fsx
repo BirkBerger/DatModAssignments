@@ -1,8 +1,8 @@
 // This script implements our interactive calculator
 
 // We need to import a couple of modules, including the generated lexer and parser
-#r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
-// #r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+// #r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+#r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
 // #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
 open FSharp.Text.Lexing
 open System
@@ -103,36 +103,35 @@ let rec doneGrdCmd gc =
 // edgesCmd: Converts the input command to a list of edges of the corresponding deterministic program graph 
 let rec edgesCmd q1 q2 qAcc c =
     match c with
-    | AssignVar(var,exp)            -> [(q1, var + ":=" + (expToString exp), q2)]
-    | AssignArr(array,index,exp)    -> [(q1, array + "[" + (expToString index) + "]:=" + (expToString exp), q2)]
-    | Skip                          -> [(q1, "skip", q2)]
+    | AssignVar(var,exp)            -> [(q1, Command(c), q2)]
+    | AssignArr(array,index,exp)    -> [(q1, Command(c), q2)]
+    | Skip                          -> [(q1, Command(c), q2)]
     | SeqCmd(cmd1,cmd2)             -> let qFresh = qAcc + 1
                                        (edgesCmd q1 qFresh (qAcc+1) cmd1)@(edgesCmd qFresh q2 (qAcc+1) cmd2)
     | IfCmd(grdCmd)                 -> edgesGrdCmd q1 q2 qAcc grdCmd
-    | DoCmd(grdCmd)                 -> let b = doneGrdCmd grdCmd
-                                       (edgesGrdCmd q1 q1 qAcc grdCmd)@[(q1,b,q2)]
+    | DoCmd(grdCmd)                 -> (edgesGrdCmd q1 q1 qAcc grdCmd)@[(q1,Command(c),q2)]
 and edgesGrdCmd q1 q2 qAcc gc =
     match gc with
     | ThenGrdCmd(bool,cmd)          -> let qFresh = qAcc + 1
-                                       [(q1,(logicToString bool),qFresh)]@(edgesCmd qFresh q2 (qAcc+1) cmd)
+                                       [(q1,GuardedND(gc),qFresh)]@(edgesCmd qFresh q2 (qAcc+1) cmd)
     | SeqGrdCmd(gc1, gc2)           -> (edgesGrdCmd q1 q2 qAcc gc1)@(edgesGrdCmd q1 q2 qAcc gc2)
 
 // edgesD: Converts the input command to a list of edges of the corresponding non-deterministic program graph 
 let rec edgesD q1 q2 qAcc c =
     match c with
-    | AssignVar(var,exp)            -> [(q1, var + ":=" + (expToString exp), q2)]
-    | AssignArr(array,index,exp)    -> [(q1, array + "[" + (expToString index) + "]:=" + (expToString exp), q2)]
-    | Skip                          -> [(q1, "skip", q2)]
+    | AssignVar(var,exp)            -> [(q1, Command(c), q2)]
+    | AssignArr(array,index,exp)    -> [(q1, Command(c), q2)]
+    | Skip                          -> [(q1, Command(c), q2)]
     | SeqCmd(cmd1,cmd2)             -> let qFresh = qAcc + 1
                                        (edgesD q1 qFresh (qAcc+1) cmd1)@(edgesD qFresh q2 (qAcc+1) cmd2)
     | IfCmd(gc)                     -> let (e,d) = edgesD2 q1 q2 qAcc gc "false"
                                        e
     | DoCmd(gc)                     -> let (e,d) = edgesD2 q1 q1 qAcc gc "false"
-                                       e@[(q1, "!(" + d + ")", q2)]
+                                       e@[(q1, CommandD(c,d), q2)]
 and edgesD2 q1 q2 qAcc gc d =
     match gc with
     | ThenGrdCmd(bool,cmd)          -> let qFresh = qAcc + 1 
-                                       ([(q1, "(" + (logicToString bool) + ")&(!" + d + ")", qFresh)]@(edgesD qFresh q2 (qAcc+1) cmd), "(" + (logicToString bool) + ")" + "|" + d)
+                                       ([(q1, GuardedD(gc,d), qFresh)]@(edgesD qFresh q2 (qAcc+1) cmd), "(" + (logicToString bool) + ")" + "|" + d)
     | SeqGrdCmd(gc1, gc2)           -> let (e1,d1) = edgesD2 q1 q2 qAcc gc1 d
                                        let (e2,d2) = edgesD2 q1 q2 qAcc gc2 d1
                                        (e1@e2,d2)
@@ -140,22 +139,56 @@ and edgesD2 q1 q2 qAcc gc d =
 
 
 
-let graphvizIntro = "digraph program_graph {rankdir=LR;
+let graphvizNotations = "digraph program_graph {rankdir=LR;
                         node [shape = circle]; q▷;
                         node [shape = doublecircle]; q◀;
-                        node [shape = circle]\n"
+                        node [shape = circle]\n";;
 
 // stateToString: Takes a state integer and outputs its corresponding state name
 let stateToString = function
-    | 0         -> "q▷"
-    | -1        -> "q◀"
-    | q         -> "q" + q.ToString()
+    | 0 -> "q▷"
+    | 1000 -> "q◀"
+    | q     -> "q" + q.ToString()
+
+//printLabel: Outputs the labels to the edges in the programtree
+let printLabel(label) =
+    match label with
+    |Command(x)            ->     match x with
+                                    | AssignVar(var,exp)            ->  var + ":=" + (expToString exp)
+                                    | AssignArr(array,index,exp)    -> array + "[" + (expToString index) + "]:=" + (expToString exp)
+                                    | Skip                          -> "skip"
+                                    | DoCmd(grdCmd)                 -> doneGrdCmd grdCmd
+    | GuardedND(x)         ->     match  x with
+                                    | ThenGrdCmd(bool,cmd)          -> logicToString(bool)
+    | CommandD(x,s)        ->     match  (x,s) with
+                                    | (DoCmd(gc),d)                 -> "!(" + d + ")"
+    | GuardedD(x,s)        ->     match (x,s) with
+                                    | (ThenGrdCmd(bool,cmd),d)      -> "(" + (logicToString bool) + ")&(!" + d + ")"
 
 // printProgramTree: Ouputs program tree in graphviz format of a given edge list
 let rec printProgramTree eList =
     match eList with
     | []                             -> ""
-    | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + label + "\"];\n" + (printProgramTree es)
+    | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + printLabel(label) + "\"];\n" + (printProgramTree es)
+
+
+(* let rec printVariables variables =
+    match variables with
+    |[]              -> ""
+    |(name, num)::vs -> name + ": " + num + "\n" + printVariables vs
+
+let printStatus q status variables = 
+    "status: " + status + "\n Node: " + (string) q + "\n" + (printVariables variables)
+
+let interpreter q eListFull eList variables =
+    match eList with
+    | []                when q=1000  ->  printStatus q "terminated" variables
+    | []                             ->  printStatus q "stuck" variables
+    | (q1,label,q2)::es  when q1==q  ->  Calculate(label)
+                                         interpreter q2 eListFull eListFull variables
+    | (_,_,_)::es                    ->  interpreter q eListFull es variables ;; *)
+
+
 
 
 
@@ -169,11 +202,12 @@ let parse input =
     res
 
 // promtGraphType: Promts the user for graph type until either "D", "ND", or "E" is input
-let rec promtGraphType input = 
-    match input with
-    | "D" | "ND" | "E"      -> input
-    | _                     -> printfn "\nEnter the following to chose program graph type:\nD - for deterministic, or \nND - for non-deterministic\nEnter E to exit.\n"
-                               promtGraphType (Console.ReadLine())
+let rec promtGraphType = function
+    | "D"           -> "D"
+    | "ND"          -> "ND"
+    | "E"           -> "E"
+    | _             -> printfn "\nEnter the following to chose program graph type:\nD - for deterministic, or \nND - for non-deterministic\nEnter E to exit.\n"
+                       promtGraphType (Console.ReadLine())
 
 // We implement here the function that interacts with the user
 let rec compute n gType =
@@ -187,8 +221,12 @@ let rec compute n gType =
             printfn "Enter a command: "
             let e = parse (Console.ReadLine())
 
-            if (graphType = "D") then printfn "Program graph:\n %s%s}" graphvizIntro (printProgramTree (edgesCmd 0 -1 0 e))
-                                 else printfn "Program graph:\n %s%s}" graphvizIntro (printProgramTree (edgesD 0 -1 0 e))
+            if (graphType = "D") then let programtree = edgesCmd 0 1000 0 e
+                                      printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (programtree))
+                                 //   interpreter q0 programtree programtree variables
+                                 else let programtree = edgesD 0 1000 0 e
+                                      printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (programtree))
+                                      //   interpreter q0 programtree programtree variables
             compute n ""
 
             with err -> printfn "Invalid syntax according to GLC grammar"

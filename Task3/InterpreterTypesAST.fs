@@ -52,3 +52,9 @@ type label =
   | StringLabel of string
   | LogicLabel of logic
   | CmdLabel of cmd
+
+  type AST =
+  |Command of cmd
+  |CommandD of cmd*string
+  |GuardedND of grdCmd
+  |GuardedD of grdCmd*string
