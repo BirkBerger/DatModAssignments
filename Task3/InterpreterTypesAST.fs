@@ -79,6 +79,5 @@ type AST =
 type numberOfSteps =
   | Integer of int
 
-
-exception ProgramStuckError of string * memory
-exception ProgramNotFinishedError of string * memory
+exception ProgramStuckError of string * memory * int
+exception ProgramNotFinishedError of string * memory * int
