@@ -71,7 +71,7 @@ type mapKey =
 type memory = Map<mapKey,int>
 
 type AST =
-  | Command of cmd
+  | CommandND of cmd
   | CommandD of cmd*string
   | GuardedND of grdCmd
   | GuardedD of grdCmd*string
