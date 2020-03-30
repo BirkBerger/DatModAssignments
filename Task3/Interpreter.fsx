@@ -1,8 +1,8 @@
 // This script implements our interactive calculator
 
 // We need to import a couple of modules, including the generated lexer and parser
-#r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                                                                   // Thea
-// #r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"  // Vivian
+// #r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                                                                   // Thea
+#r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"  // Vivian
 // #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                   // Amalie
 open FSharp.Text.Lexing
 open System
@@ -145,13 +145,13 @@ let rec doneGrdCmd gc =
 // edgesCmd: Converts the input command to a list of edges of the corresponding deterministic program graph 
 let rec edgesCmd q1 q2 qAcc c =
     match c with
-    | AssignVar(var,exp)            -> [(q1, Command(c), q2)]
-    | AssignArr(array,index,exp)    -> [(q1, Command(c), q2)]
-    | Skip                          -> [(q1, Command(c), q2)]
+    | AssignVar(var,exp)            -> [(q1, CommandND(c), q2)]
+    | AssignArr(array,index,exp)    -> [(q1, CommandND(c), q2)]
+    | Skip                          -> [(q1, CommandND(c), q2)]
     | SeqCmd(cmd1,cmd2)             -> let qFresh = qAcc + 1
                                        (edgesCmd q1 qFresh (qAcc+1) cmd1)@(edgesCmd qFresh q2 (qAcc+1) cmd2)
     | IfCmd(grdCmd)                 -> edgesGrdCmd q1 q2 qAcc grdCmd
-    | DoCmd(grdCmd)                 -> (edgesGrdCmd q1 q1 qAcc grdCmd)@[(q1,Command(c),q2)]
+    | DoCmd(grdCmd)                 -> (edgesGrdCmd q1 q1 qAcc grdCmd)@[(q1,CommandND(c),q2)]
 and edgesGrdCmd q1 q2 qAcc gc =
     match gc with
     | ThenGrdCmd(bool,cmd)          -> let qFresh = qAcc + 1
@@ -161,9 +161,9 @@ and edgesGrdCmd q1 q2 qAcc gc =
 // edgesD: Converts the input command to a list of edges of the corresponding non-deterministic program graph 
 let rec edgesD q1 q2 qAcc c =
     match c with
-    | AssignVar(var,exp)            -> [(q1, Command(c), q2)]
-    | AssignArr(array,index,exp)    -> [(q1, Command(c), q2)]
-    | Skip                          -> [(q1, Command(c), q2)]
+    | AssignVar(var,exp)            -> [(q1, CommandND(c), q2)]
+    | AssignArr(array,index,exp)    -> [(q1, CommandND(c), q2)]
+    | Skip                          -> [(q1, CommandND(c), q2)]
     | SeqCmd(cmd1,cmd2)             -> let qFresh = qAcc + 1
                                        (edgesD q1 qFresh (qAcc+1) cmd1)@(edgesD qFresh q2 (qAcc+1) cmd2)
     | IfCmd(gc)                     -> let (e,d) = edgesD2 q1 q2 qAcc gc "false"
@@ -195,7 +195,7 @@ let stateToString = function
 //printLabel: Outputs the labels to the edges in the programtree
 let printLabel(label) =
     match label with
-    | Command(x)            ->     match x with
+    | CommandND(x)            ->     match x with
                                     | AssignVar(var,exp)            ->  var + ":=" + (expToString exp)
                                     | AssignArr(array,index,exp)    -> array + "[" + (expToString index) + "]:=" + (expToString exp)
                                     | Skip                          -> "skip"
@@ -217,7 +217,24 @@ let rec printProgramTree eList =
     | []                             -> ""
     | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + printLabel(label) + "\"];\n" + (printProgramTree es)
 
+let Calculate label mem =
+        match label with
+        | CommandND(x)         ->        evalCmd x mem
+        | GuardedND(x)         ->        evalGrdCmd x mem
+        | CommandD(x,_)        ->        evalCmd x mem
+        | GuardedD(x,_)        ->        evalGrdCmd x mem
 
+let rec printMemory memList =
+    match memList with
+    |[]                            -> ""
+    |(VarElem(x),n)::vs            -> x + ": " + n.ToString() + "\n" + printMemory vs
+    |(ArrElem(name, index),n)::vs  -> name + ": [" + n.ToString() + (printArrayElements name vs)
+and printArrayElements arrName memList =
+    match memList with
+    | (ArrElem(name, index),n)::vs when arrName=name -> "," + n.ToString() + (printArrayElements arrName vs)
+    | _                                              -> "]\n" + (printMemory memList)
+
+<<<<<<< HEAD
 let rec printVariables variables =
     match variables with
     |[]              -> ""
@@ -233,6 +250,17 @@ let interpreter q eListFull eList variables =
     | (q1,label,q2)::es  when q1==q  ->  Calculate(label)
                                          interpreter q2 eListFull eListFull variables
     | (_,_,_)::es                    ->  interpreter q eListFull es variables ;;
+=======
+let printStatus q status variables = 
+    "Status: " + status + "\nNode: " + (stateToString q) + "\n" + (printMemory (Map.toList(variables)))
+
+let rec interpreter q eListFull eList mem =
+    match eList with
+    | []                 when q=(-1)   ->  printStatus q "terminated" mem
+    | []                               ->  printStatus q "stuck" mem
+    | (q1,label,q2)::es  when q1=q     ->  interpreter q2 eListFull eListFull (Calculate label mem)
+    | _::es                            ->  interpreter q eListFull es mem ;;
+>>>>>>> 5acd01b298e981c9b876cd38924af576c9cc6b9d
 
 
 
@@ -268,17 +296,20 @@ let rec compute n gType =
         printfn "Bye bye"
     else
         try
-        printfn "Enter initial variable and array values"
-        let e1 = parse2 (Console.ReadLine())
-        printfn "Initial memory:\n%A" (getMemMap e1)
-
 
         printfn "Enter a command: "
         let e2 = parse (Console.ReadLine())
 
         let programtree = edgesCmd 0 -1 0 e2
         printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (programtree))
-        //   interpreter q0 programtree programtree variables
+
+        printfn "Enter initial variable and array values"
+        let e1 = parse2 (Console.ReadLine())
+        let memory = getMemMap e1
+        printfn "Initial memory:\n%A" (memory)
+
+
+        printfn "%s"  (interpreter 0 programtree programtree memory)
 
         compute n ""
 
