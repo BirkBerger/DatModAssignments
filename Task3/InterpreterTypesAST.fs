@@ -75,3 +75,10 @@ type AST =
   | CommandD of cmd*string
   | GuardedND of grdCmd
   | GuardedD of grdCmd*string
+
+type numberOfSteps =
+  | Integer of int
+
+
+exception ProgramStuckError of string * memory
+exception ProgramNotFinishedError of string * memory

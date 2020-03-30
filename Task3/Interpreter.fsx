@@ -1,8 +1,8 @@
 // This script implements our interactive calculator
 
 // We need to import a couple of modules, including the generated lexer and parser
-// #r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                                                                   // Thea
-#r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"  // Vivian
+#r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                                                                   // Thea
+// #r "C:/Users/Bruger/Documents/DTU/Datalogisk modellering/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"  // Vivian
 // #r "C:/Users/amali/source/repos/DataMod/packages/FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"                   // Amalie
 open FSharp.Text.Lexing
 open System
@@ -41,64 +41,65 @@ let rec power x y =
     | y when y > 0 -> power (x*x) (y-1)
     | _ -> failwith "cannot have negative exponent"
 
-// evalExpr: Evaluates the correctness of the syntax of the input guarded commands code
-let rec evalExpr e mem =
+// evalExpr step: Evaluates the correctness of the syntax of the input guarded commands code
+let rec evalExpr step e mem =
   match e with
+    | _ when step = 0               -> raise (ProgramNotFinishedError("evaluation is not finished",mem))
     | Num(x)                        -> x
-    | Var(x)                        -> Map.find (VarElem(x)) mem // TODO: make stuck if not exist in map
-    | TimesExpr(x,y)                -> (evalExpr x mem) * (evalExpr y mem)
-    | DivExpr(x,y)                  -> (evalExpr x mem) / (evalExpr y mem)
-    | PlusExpr(x,y)                 -> (evalExpr x mem) + (evalExpr y mem)
-    | MinusExpr(x,y)                -> (evalExpr x mem) - (evalExpr y mem)
-    | PowExpr(x,y)                  -> power (evalExpr x mem) (evalExpr y mem)
-    | UPlusExpr(x)                  -> (evalExpr x mem)
-    | UMinusExpr(x)                 -> (-1) * (evalExpr x mem)
-    | Index(name,index)             -> Map.find (ArrElem(name, evalExpr index mem)) mem 
-    | ParenExpr(x)                  -> (evalExpr x mem)
+    | Var(x)                        -> if Map.containsKey (VarElem(x)) mem
+                                       then Map.find (VarElem(x)) mem 
+                                       else raise (ProgramStuckError("varible is not defined in memory",mem))
+    | TimesExpr(x,y)                -> (evalExpr step x mem) * (evalExpr step y mem)
+    | DivExpr(x,y)                  -> (evalExpr step x mem) / (evalExpr step y mem)
+    | PlusExpr(x,y)                 -> (evalExpr step x mem) + (evalExpr step y mem)
+    | MinusExpr(x,y)                -> (evalExpr step x mem) - (evalExpr step y mem)
+    | PowExpr(x,y)                  -> power (evalExpr step x mem) (evalExpr step y mem)
+    | UPlusExpr(x)                  -> (evalExpr step x mem)
+    | UMinusExpr(x)                 -> (-1) * (evalExpr step x mem)
+    | Index(name,index)             -> if Map.containsKey (ArrElem(name, evalExpr step index mem)) mem
+                                       then Map.find (ArrElem(name, evalExpr step index mem)) mem 
+                                       else raise (ProgramStuckError("array element is not defined in memory",mem))
+    | ParenExpr(x)                  -> (evalExpr step x mem)
 
-// A = [2,4]
-// map [(VarElem(x), 3);
-//      (VarElem(y), 2); 
-//      (ArrElem(A,0), 2);
-//      (ArrElem(A,1), 4)]
-
-let rec evalLogic b mem =
+let rec evalLogic step b mem =
     match b with
+    | _ when step = 0               -> raise (ProgramNotFinishedError("evaluation is not finished",mem))
     | TrueLogic                     -> true
     | FalseLogic                    -> false
-    | NotLogic(x)                   -> evalLogic x mem
-    | AndSCLogic(x,y)               -> (evalLogic x mem) && (evalLogic y mem)
-    | AndLogic(x,y)                 -> ((evalLogic x mem) && (evalLogic y mem)) && ((evalLogic y mem) && (evalLogic x mem))
-    | OrLogic(x,y)                  -> ((evalLogic x mem) || (evalLogic y mem)) && ((evalLogic y mem) || (evalLogic x mem))
-    | OrSCLogic(x,y)                -> (evalLogic x mem) || (evalLogic y mem)
-    | EqualLogic(x,y)               -> (evalExpr x mem) = (evalExpr y mem) 
-    | NotEqualLogic(x,y)            -> (evalExpr x mem) <> (evalExpr y mem) 
-    | GTLogic(x,y)                  -> (evalExpr x mem) > (evalExpr y mem) 
-    | GETLogic(x,y)                 -> (evalExpr x mem) >= (evalExpr y mem) 
-    | LTLogic(x,y)                  -> (evalExpr x mem) < (evalExpr y mem) 
-    | LETLogic(x,y)                 -> (evalExpr x mem) <= (evalExpr y mem) 
-    | ParenLogic(x)                 -> (evalLogic x mem)
-
-// type mapKey = 
-//   | VarElem of string
-//   | ArrElem of string * int
-// type memory = Map<mapKey,int>
+    | NotLogic(x)                   -> evalLogic step x mem
+    | AndSCLogic(x,y)               -> (evalLogic step x mem) && (evalLogic step y mem)
+    | AndLogic(x,y)                 -> ((evalLogic step x mem) && (evalLogic step y mem)) && ((evalLogic step y mem) && (evalLogic step x mem))
+    | OrLogic(x,y)                  -> ((evalLogic step x mem) || (evalLogic step y mem)) && ((evalLogic step y mem) || (evalLogic step x mem))
+    | OrSCLogic(x,y)                -> (evalLogic step x mem) || (evalLogic step y mem)
+    | EqualLogic(x,y)               -> (evalExpr step x mem) = (evalExpr step y mem) 
+    | NotEqualLogic(x,y)            -> (evalExpr step x mem) <> (evalExpr step y mem) 
+    | GTLogic(x,y)                  -> (evalExpr step x mem) > (evalExpr step y mem) 
+    | GETLogic(x,y)                 -> (evalExpr step x mem) >= (evalExpr step y mem) 
+    | LTLogic(x,y)                  -> (evalExpr step x mem) < (evalExpr step y mem) 
+    | LETLogic(x,y)                 -> (evalExpr step x mem) <= (evalExpr step y mem) 
+    | ParenLogic(x)                 -> (evalLogic step x mem)
   
-let rec evalCmd c mem =
+let rec evalCmd step c mem =
     match c with
-    | AssignVar(id,exp)             -> let varValue = evalExpr exp mem
-                                       Map.add (VarElem(id)) varValue (Map.remove (VarElem(id)) mem)
-    | AssignArr(name, index, exp)   -> let arrayIndex = evalExpr index mem
-                                       let newArrayElem = evalExpr exp mem
-                                       Map.add (ArrElem(name, arrayIndex)) newArrayElem (Map.remove (ArrElem(name, arrayIndex)) mem)
+    | _ when step = 0               -> raise (ProgramNotFinishedError("evaluation is not finished",mem))
+    | AssignVar(id,exp)             -> let varValue = evalExpr step exp mem
+                                       if Map.containsKey (VarElem(id)) mem
+                                       then Map.add (VarElem(id)) varValue (Map.remove (VarElem(id)) mem)
+                                       else raise (ProgramStuckError("varible is not defined in memory",mem))
+    | AssignArr(name, index, exp)   -> let arrayIndex = evalExpr step index mem
+                                       let newArrayElem = evalExpr step exp mem
+                                       if Map.containsKey (ArrElem(name, arrayIndex)) mem
+                                       then Map.add (ArrElem(name, arrayIndex)) newArrayElem (Map.remove (ArrElem(name, arrayIndex)) mem)
+                                       else raise (ProgramStuckError("varible is not defined in memory",mem))
     | Skip                          -> mem
-    | SeqCmd(cmd1, cmd2)            -> evalCmd cmd2 (evalCmd cmd1 mem)
-    | IfCmd(grdCmd)                 -> evalGrdCmd grdCmd mem
-    | DoCmd(grdCmd)                 -> evalGrdCmd grdCmd mem
-and evalGrdCmd gc mem =
+    | SeqCmd(cmd1, cmd2)            -> evalCmd (step-2) cmd2 (evalCmd (step-1) cmd1 mem)
+    | IfCmd(grdCmd)                 -> evalGrdCmd (step-1) grdCmd mem
+    | DoCmd(grdCmd)                 -> evalGrdCmd (step-1) grdCmd mem
+and evalGrdCmd step gc mem =
     match gc with
-    | ThenGrdCmd(bool,cmd)          -> if (evalLogic bool mem) then (evalCmd cmd mem) else mem
-    | SeqGrdCmd(gc1,gc2)            -> evalGrdCmd gc2 (evalGrdCmd gc1 mem)
+    | ThenGrdCmd(bool,cmd)          -> if (evalLogic step bool mem) then (evalGrdCmd (step-1) gc (evalCmd step cmd mem)) else mem
+    | SeqGrdCmd(gc1,gc2)            -> evalGrdCmd step gc2 (evalGrdCmd step gc1 mem)
+
 
 
 // ------------------ Task2: GLC compiler ------------------ //
@@ -195,21 +196,21 @@ let stateToString = function
 //printLabel: Outputs the labels to the edges in the programtree
 let printLabel(label) =
     match label with
-    | CommandND(x)            ->     match x with
-                                    | AssignVar(var,exp)            ->  var + ":=" + (expToString exp)
-                                    | AssignArr(array,index,exp)    -> array + "[" + (expToString index) + "]:=" + (expToString exp)
-                                    | Skip                          -> "skip"
-                                    | DoCmd(grdCmd)                 -> doneGrdCmd grdCmd
-                                    | _                             -> failwith "command cannot be label"
-    | GuardedND(x)         ->     match  x with
-                                    | ThenGrdCmd(bool,cmd)          -> logicToString(bool)
-                                    | _                             -> failwith "guarded command cannot be label"
-    | CommandD(x,s)        ->     match  (x,s) with
-                                    | (DoCmd(gc),d)                 -> "!(" + d + ")"
-                                    | _                             -> failwith "command cannot be label"
-    | GuardedD(x,s)        ->     match (x,s) with
-                                    | (ThenGrdCmd(bool,cmd),d)      -> "(" + (logicToString bool) + ")&(!" + d + ")"
-                                    | _                             -> failwith "guarded command cannot be label"
+    | CommandND(x)      ->  match x with
+                                | AssignVar(var,exp)            ->  var + ":=" + (expToString exp)
+                                | AssignArr(array,index,exp)    -> array + "[" + (expToString index) + "]:=" + (expToString exp)
+                                | Skip                          -> "skip"
+                                | DoCmd(grdCmd)                 -> doneGrdCmd grdCmd
+                                | _                             -> failwith "command cannot be label"
+    | GuardedND(x)      ->  match  x with
+                                | ThenGrdCmd(bool,cmd)          -> logicToString(bool)
+                                | _                             -> failwith "guarded command cannot be label"
+    | CommandD(x,s)     ->  match  (x,s) with
+                                | (DoCmd(gc),d)                 -> "!(" + d + ")"
+                                | _                             -> failwith "command cannot be label"
+    | GuardedD(x,s)     ->  match (x,s) with
+                                | (ThenGrdCmd(bool,cmd),d)      -> "(" + (logicToString bool) + ")&(!" + d + ")"
+                                | _                             -> failwith "guarded command cannot be label"
 
 // printProgramTree: Ouputs program tree in graphviz format of a given edge list
 let rec printProgramTree eList =
@@ -217,50 +218,27 @@ let rec printProgramTree eList =
     | []                             -> ""
     | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + printLabel(label) + "\"];\n" + (printProgramTree es)
 
-let Calculate label mem =
-        match label with
-        | CommandND(x)         ->        evalCmd x mem
-        | GuardedND(x)         ->        evalGrdCmd x mem
-        | CommandD(x,_)        ->        evalCmd x mem
-        | GuardedD(x,_)        ->        evalGrdCmd x mem
+
+
 
 let rec printMemory memList =
     match memList with
-    |[]                            -> ""
-    |(VarElem(x),n)::vs            -> x + ": " + n.ToString() + "\n" + printMemory vs
-    |(ArrElem(name, index),n)::vs  -> name + ": [" + n.ToString() + (printArrayElements name vs)
+    | []                                              -> ""
+    | (VarElem(x),value)::vs                          -> x + ": " + value.ToString() + "\n" + printMemory vs
+    | (ArrElem(name, _),value)::vs                    -> name + ": [" + value.ToString() + (printArrayElements name vs)
 and printArrayElements arrName memList =
     match memList with
-    | (ArrElem(name, index),n)::vs when arrName=name -> "," + n.ToString() + (printArrayElements arrName vs)
-    | _                                              -> "]\n" + (printMemory memList)
+    | (ArrElem(name, _),value)::vs when arrName=name  -> "," + value.ToString() + (printArrayElements arrName vs)
+    | _                                               -> "]\n" + (printMemory memList)
 
-<<<<<<< HEAD
-let rec printVariables variables =
-    match variables with
-    |[]              -> ""
-    |(name, num)::vs -> name + ": " + num + "\n" + printVariables vs
+let rec interpreter command totalSteps mem =
+    try
+    let finalMemory = evalCmd totalSteps command mem
+    "Status: Terminated\nNode: q◀\n" + (printMemory (Map.toList finalMemory))
+    with
+    | ProgramNotFinishedError(_,mem)   -> "Status: Program unfinished. Increment number of steps\n" + (printMemory (Map.toList mem))
+    | ProgramStuckError(_,mem)         -> "Status: Stuck\n" + (printMemory (Map.toList mem))
 
-let printStatus q status variables = 
-    "status: " + status + "\n Node: " + (string) q + "\n" + (printVariables variables)
-
-let interpreter q eListFull eList variables =
-    match eList with
-    | []                when q=1000  ->  printStatus q "terminated" variables
-    | []                             ->  printStatus q "stuck" variables
-    | (q1,label,q2)::es  when q1==q  ->  Calculate(label)
-                                         interpreter q2 eListFull eListFull variables
-    | (_,_,_)::es                    ->  interpreter q eListFull es variables ;;
-=======
-let printStatus q status variables = 
-    "Status: " + status + "\nNode: " + (stateToString q) + "\n" + (printMemory (Map.toList(variables)))
-
-let rec interpreter q eListFull eList mem =
-    match eList with
-    | []                 when q=(-1)   ->  printStatus q "terminated" mem
-    | []                               ->  printStatus q "stuck" mem
-    | (q1,label,q2)::es  when q1=q     ->  interpreter q2 eListFull eListFull (Calculate label mem)
-    | _::es                            ->  interpreter q eListFull es mem ;;
->>>>>>> 5acd01b298e981c9b876cd38924af576c9cc6b9d
 
 
 
@@ -289,6 +267,14 @@ let rec promtGraphType input =
     | _                     -> printfn "\nEnter the following to chose program graph type:\nD - for deterministic, or \nND - for non-deterministic\nEnter E to exit.\n"
                                promtGraphType (Console.ReadLine())
 
+let strContainsOnlyNumber (s:string) = s |> Seq.forall Char.IsDigit
+
+let rec numberOfSteps input =
+    match input with
+    | _ when (strContainsOnlyNumber input)  -> (int) input
+    | _                                     -> printfn "Enter number of steps"
+                                               let newInput = (Console.ReadLine())
+                                               numberOfSteps newInput
 
 // We implement here the function that interacts with the user
 let rec compute n gType =
@@ -296,26 +282,24 @@ let rec compute n gType =
         printfn "Bye bye"
     else
         try
+            printfn "Enter a command: "
+            let command = parse (Console.ReadLine())
+            let programtree = edgesCmd 0 -1 0 command
+            printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (programtree))
 
-        printfn "Enter a command: "
-        let e2 = parse (Console.ReadLine())
+            printfn "Enter initial variables and array values"
+            let initialMemory = parse2 (Console.ReadLine())
+            let initialMemoryMap = getMemMap initialMemory
+            
+            printfn "Enter number of steps"
+            let numberOfSteps = numberOfSteps (Console.ReadLine())
+            printfn "%s" (interpreter command numberOfSteps initialMemoryMap)
 
-        let programtree = edgesCmd 0 -1 0 e2
-        printfn "Program graph:\n %s%s}" graphvizNotations (printProgramTree (programtree))
+            compute n ""
 
-        printfn "Enter initial variable and array values"
-        let e1 = parse2 (Console.ReadLine())
-        let memory = getMemMap e1
-        printfn "Initial memory:\n%A" (memory)
-
-
-        printfn "%s"  (interpreter 0 programtree programtree memory)
-
-        compute n ""
-
-        with err -> printfn "Invalid initialization or command syntax"
-                    compute (n-1) ""
+            with err -> printfn "Invalid initialization or command syntax"
+                        compute (n-1) ""
                         
-
+                      
 // Start interacting with the user
 compute 3 ""
