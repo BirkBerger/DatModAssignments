@@ -164,7 +164,7 @@ and tokenize  lexbuf =
           )
   | 6 -> ( 
 # 31 "InterpreterLexer.fsl"
-                                 NUM(Integer.Parse(LexBuffer<_>.LexemeString lexbuf)) 
+                                 NUM(int (LexBuffer<_>.LexemeString lexbuf)) 
 # 168 "InterpreterLexer.fs"
           )
   | 7 -> ( 

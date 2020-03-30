@@ -195,17 +195,21 @@ let stateToString = function
 //printLabel: Outputs the labels to the edges in the programtree
 let printLabel(label) =
     match label with
-    |Command(x)            ->     match x with
+    | Command(x)            ->     match x with
                                     | AssignVar(var,exp)            ->  var + ":=" + (expToString exp)
                                     | AssignArr(array,index,exp)    -> array + "[" + (expToString index) + "]:=" + (expToString exp)
                                     | Skip                          -> "skip"
                                     | DoCmd(grdCmd)                 -> doneGrdCmd grdCmd
+                                    | _                             -> failwith "command cannot be label"
     | GuardedND(x)         ->     match  x with
                                     | ThenGrdCmd(bool,cmd)          -> logicToString(bool)
+                                    | _                             -> failwith "guarded command cannot be label"
     | CommandD(x,s)        ->     match  (x,s) with
                                     | (DoCmd(gc),d)                 -> "!(" + d + ")"
+                                    | _                             -> failwith "command cannot be label"
     | GuardedD(x,s)        ->     match (x,s) with
                                     | (ThenGrdCmd(bool,cmd),d)      -> "(" + (logicToString bool) + ")&(!" + d + ")"
+                                    | _                             -> failwith "guarded command cannot be label"
 
 // printProgramTree: Ouputs program tree in graphviz format of a given edge list
 let rec printProgramTree eList =

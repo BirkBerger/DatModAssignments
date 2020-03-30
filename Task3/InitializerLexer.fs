@@ -54,7 +54,7 @@ and tokenize  lexbuf =
           )
   | 2 -> ( 
 # 27 "InitializerLexer.fsl"
-                                 NUM2(Integer.Parse(LexBuffer<_>.LexemeString lexbuf)) 
+                                 NUM2(int (LexBuffer<_>.LexemeString lexbuf)) 
 # 58 "InitializerLexer.fs"
           )
   | 3 -> ( 
