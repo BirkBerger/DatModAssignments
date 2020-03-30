@@ -218,19 +218,21 @@ let rec printProgramTree eList =
     | (q1,label,q2)::es              -> (stateToString q1) + " -> " + (stateToString q2) + " [label = \"" + printLabel(label) + "\"];\n" + (printProgramTree es)
 
 
-(* let rec printVariables variables =
+let rec printVariables variables =
     match variables with
     |[]              -> ""
     |(name, num)::vs -> name + ": " + num + "\n" + printVariables vs
+
 let printStatus q status variables = 
     "status: " + status + "\n Node: " + (string) q + "\n" + (printVariables variables)
+
 let interpreter q eListFull eList variables =
     match eList with
     | []                when q=1000  ->  printStatus q "terminated" variables
     | []                             ->  printStatus q "stuck" variables
     | (q1,label,q2)::es  when q1==q  ->  Calculate(label)
                                          interpreter q2 eListFull eListFull variables
-    | (_,_,_)::es                    ->  interpreter q eListFull es variables ;; *)
+    | (_,_,_)::es                    ->  interpreter q eListFull es variables ;;
 
 
 
